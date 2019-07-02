@@ -600,6 +600,12 @@ module = {
 };
 
 module = {
+  name = khooy;
+  common = term/khooy.c;
+  enable = i386;
+};
+
+module = {
   name = usbserial_common;
   common = bus/usb/serial/common.c;
   enable = usb;
