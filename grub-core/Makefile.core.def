@@ -602,7 +602,7 @@ module = {
 module = {
   name = khooy;
   common = term/khooy.c;
-  enable = i386;
+  enable = usb;
 };
 
 module = {
