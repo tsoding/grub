@@ -600,8 +600,8 @@ module = {
 };
 
 module = {
-  name = khooy;
-  common = term/khooy.c;
+  name = usb_gamepad;
+  common = term/usb_gamepad.c;
   enable = usb;
 };
 
