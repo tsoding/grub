@@ -46,7 +46,7 @@ usb_gamepad_getkey (struct grub_term_input *term)
 
     int key = GRUB_TERM_NO_KEY;
 
-    // TODO: usb_gamepad is not using dpad for arrows
+    // TODO(#15): usb_gamepad is not using dpad for arrows
     switch (termdata->report[4]) {
     case 0x28: {
         key = GRUB_TERM_KEY_DOWN;
@@ -92,7 +92,7 @@ static struct grub_term_input usb_gamepad_input_term =
 static int
 grub_usb_gamepad_attach(grub_usb_device_t usbdev, int configno, int interfno)
 {
-    // TODO: grub_usb_gamepad_attach leaks memory every time you connect a new USB device
+    // TODO(#14): grub_usb_gamepad_attach leaks memory every time you connect a new USB device
     grub_dprintf("usb_gamepad", "Usb_Gamepad configno: %d, interfno: %d\n", configno, interfno);
     struct grub_usb_gamepad_data *data = grub_malloc(sizeof(struct grub_usb_gamepad_data));
     struct grub_usb_desc_endp *endp = NULL;
