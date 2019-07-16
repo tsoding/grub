@@ -44,6 +44,22 @@ usb_gamepad_getkey (struct grub_term_input *term)
                  termdata->report[6],
                  termdata->report[7]);
 
+    int key = GRUB_TERM_NO_KEY;
+
+    // TODO: usb_gamepad is not using dpad for arrows
+    switch (termdata->report[4]) {
+    case 0x28: {
+        key = GRUB_TERM_KEY_DOWN;
+    } break;
+
+    case 0x88: {
+        key = GRUB_TERM_KEY_UP;
+    } break;
+
+    case 0x48: {
+        key = '\n';
+    } break;
+    }
 
     termdata->transfer = grub_usb_bulk_read_background (
         termdata->usbdev,
@@ -54,10 +70,10 @@ usb_gamepad_getkey (struct grub_term_input *term)
     if (!termdata->transfer)
     {
         grub_print_error ();
-        return GRUB_TERM_NO_KEY;
+        return key;
     }
 
-    return GRUB_TERM_NO_KEY;
+    return key;
 }
 
 static int
