@@ -1,6 +1,7 @@
 #include <grub/dl.h>
 #include <grub/term.h>
 #include <grub/usb.h>
+#include <grub/command.h>
 
 GRUB_MOD_LICENSE ("GPLv3");
 
@@ -25,6 +26,21 @@ GRUB_MOD_LICENSE ("GPLv3");
 #define BUTTON2_MASK 0x2
 #define BUTTON3_MASK 0x4
 #define BUTTON4_MASK 0x8
+
+static int dpad_mapping[9] = { GRUB_TERM_NO_KEY };
+
+static const char *dpad_names[9] = {
+    "up",
+    "upright",
+    "right",
+    "downright",
+    "down",
+    "downleft",
+    "left",
+    "upleft",
+    "centered"
+};
+
 
 // TODO: usb_gamepad has no respect to endianness
 struct logitech_rumble_f510
@@ -86,18 +102,11 @@ usb_gamepad_getkey (struct grub_term_input *term)
                  termdata->report[6],
                  termdata->report[7]);
 
+    grub_dprintf("usb_gamepad", "Key down: %d\n", GRUB_TERM_KEY_DOWN);
+
     int key = GRUB_TERM_NO_KEY;
 
-    // TODO(#15): usb_gamepad is not using dpad for arrows
-    switch (logitech_report->dpad) {
-    case DPAD_DOWN: {
-        key = GRUB_TERM_KEY_DOWN;
-    } break;
-
-    case DPAD_UP: {
-        key = GRUB_TERM_KEY_UP;
-    } break;
-    }
+    key = dpad_mapping[logitech_report->dpad];
 
     // TODO: one usb report can represent several key strokes
     //   And usb_gamepad_getkey does not support that.
@@ -194,13 +203,93 @@ static struct grub_usb_attach_desc attach_hook =
     .hook = grub_usb_gamepad_attach
 };
 
+static int dpad_dir_by_name(const char *name)
+{
+    for (int i = 0; i < 9; ++i) {
+        if (grub_strcmp(name, dpad_names[i]) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static const char *key_names[] = {
+    "key_up",
+    "key_down"
+};
+
+static int key_mapping[] = {
+    GRUB_TERM_KEY_UP,
+    GRUB_TERM_KEY_DOWN
+};
+
+static int keycode_by_name(const char *name)
+{
+    const int n = sizeof(key_names) / sizeof(key_names[0]);
+    for (int i = 0; i < n; ++i) {
+        if (grub_strcmp(name, key_names[i]) == 0) {
+            return key_mapping[i];
+        }
+    }
+
+    return -1;
+}
+
+static grub_err_t
+grub_cmd_gamepad_dpad(grub_command_t cmd __attribute__((unused)),
+                      int argc, char **args)
+{
+    if (argc < 2) {
+        return grub_error(
+            GRUB_ERR_BAD_ARGUMENT,
+            N_("Expected at least two arguments"));
+    }
+
+    const char *dpad_dir_name = args[0];
+    int dpad_dir = dpad_dir_by_name(dpad_dir_name);
+
+    if (dpad_dir < 0) {
+        return grub_error(
+            GRUB_ERR_BAD_ARGUMENT,
+            N_("%s is not a correct dpad direction name"),
+            dpad_dir_name);
+    }
+
+    const char *key_name = args[1];
+    int keycode = keycode_by_name(key_name);
+    if (keycode < 0) {
+        return grub_error(
+            GRUB_ERR_BAD_ARGUMENT,
+            N_("%s is not a correct key mnemonic"),
+            key_name);
+    }
+
+    dpad_mapping[dpad_dir] = keycode;
+
+    grub_dprintf(
+        "usb_keyboard",
+        "Dpad direction %s was mapped to keycode %d\n",
+        dpad_dir_name, keycode);
+
+    return GRUB_ERR_NONE;
+}
+
+static grub_command_t cmd_gamepad_dpad;
+
 GRUB_MOD_INIT(usb_gamepad)
 {
     grub_dprintf("usb_gamepad", "Usb_Gamepad module loaded\n");
+    cmd_gamepad_dpad = grub_register_command(
+        "gamepad_dpad",
+        grub_cmd_gamepad_dpad,
+        N_("<dpad-direction> <keycode>"),
+        N_("Map gamepad dpad direction to a keycode"));
     grub_usb_register_attach_hook_class(&attach_hook);
 }
 
 GRUB_MOD_FINI(usb_gamepad)
 {
+    grub_unregister_command (cmd_gamepad_dpad);
     grub_dprintf("usb_gamepad", "Usb_Gamepad fini-ed\n");
+    // TODO: usb_gamepad does not uninitialize usb stuff on FINI
 }
