@@ -11,6 +11,45 @@ GRUB_MOD_LICENSE ("GPLv3");
 #define USB_HID_SET_IDLE	0x0A
 #define USB_HID_SET_PROTOCOL	0x0B
 
+#define DPAD_UP 0x0
+#define DPAD_UPRIGHT 0x1
+#define DPAD_RIGHT 0x2
+#define DPAD_DOWNRIGHT 0x3
+#define DPAD_DOWN 0x4
+#define DPAD_DOWNLEFT 0x5
+#define DPAD_LEFT 0x6
+#define DPAD_UPLEFT 0x7
+#define DPAD_CENTERED 0x8
+
+#define BUTTON1_MASK 0x1
+#define BUTTON2_MASK 0x2
+#define BUTTON3_MASK 0x4
+#define BUTTON4_MASK 0x8
+
+// TODO: usb_gamepad has no respect to endianness
+struct logitech_rumble_f510
+{
+    grub_uint8_t x1;
+    grub_uint8_t y1;
+    grub_uint8_t x2;
+    grub_uint8_t y2;
+    grub_uint8_t dpad: 4;
+    grub_uint8_t button1: 1;
+    grub_uint8_t button2: 1;
+    grub_uint8_t button3: 1;
+    grub_uint8_t button4: 1;
+    grub_uint8_t lb: 1;
+    grub_uint8_t rb: 1;
+    grub_uint8_t lt: 1;
+    grub_uint8_t rt: 1;
+    grub_uint8_t back: 1;
+    grub_uint8_t start: 1;
+    grub_uint8_t ls: 1;
+    grub_uint8_t rs: 1;
+    grub_uint8_t mode;
+    grub_uint8_t padding;
+};
+
 struct grub_usb_gamepad_data
 {
     grub_usb_device_t usbdev;
@@ -33,6 +72,9 @@ usb_gamepad_getkey (struct grub_term_input *term)
         return GRUB_TERM_NO_KEY;
     }
 
+    struct logitech_rumble_f510 *logitech_report =
+        (struct logitech_rumble_f510 *)termdata->report;
+
     grub_dprintf("usb_gamepad",
                  "Received report: %x %x %x %x %x %x %x %x\n",
                  termdata->report[0],
@@ -47,18 +89,20 @@ usb_gamepad_getkey (struct grub_term_input *term)
     int key = GRUB_TERM_NO_KEY;
 
     // TODO(#15): usb_gamepad is not using dpad for arrows
-    switch (termdata->report[4]) {
-    case 0x28: {
+    switch (logitech_report->dpad) {
+    case DPAD_DOWN: {
         key = GRUB_TERM_KEY_DOWN;
     } break;
 
-    case 0x88: {
+    case DPAD_UP: {
         key = GRUB_TERM_KEY_UP;
     } break;
+    }
 
-    case 0x48: {
+    // TODO: one usb report can represent several key strokes
+    //   And usb_gamepad_getkey does not support that.
+    if (logitech_report->button2) {
         key = '\n';
-    } break;
     }
 
     termdata->transfer = grub_usb_bulk_read_background (
