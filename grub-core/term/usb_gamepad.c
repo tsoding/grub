@@ -42,7 +42,7 @@ static const char *dpad_names[9] = {
 };
 
 
-// TODO: usb_gamepad has no respect to endianness
+// TODO(#18): usb_gamepad has no respect to endianness
 struct logitech_rumble_f510
 {
     grub_uint8_t x1;
