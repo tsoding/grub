@@ -19,9 +19,15 @@ typedef enum {
     DPAD_COUNT
 } logitech_rumble_f510_dpad_t;
 
+#define BUTTONS_COUNT 4
 
 static int dpad_mapping[DPAD_COUNT] = { GRUB_TERM_NO_KEY };
-// static int button_mapping[4] = { GRUB_TERM_NO_KEY };
+static int button_mapping[BUTTONS_COUNT] = {
+    GRUB_TERM_NO_KEY,
+    '\n',
+    GRUB_TERM_NO_KEY,
+    GRUB_TERM_NO_KEY
+};
 
 static const char *dpad_names[DPAD_COUNT] = {
     "up",
@@ -34,7 +40,6 @@ static const char *dpad_names[DPAD_COUNT] = {
     "upleft",
     "centered"
 };
-
 
 // TODO(#18): usb_gamepad has no respect to endianness
 struct logitech_rumble_f510_state
@@ -56,7 +61,6 @@ struct logitech_rumble_f510_state
     grub_uint8_t mode;
     grub_uint8_t padding;
 };
-
 
 static inline
 void print_logitech_state(struct logitech_rumble_f510_state *state)
@@ -105,16 +109,56 @@ struct grub_usb_gamepad_data
     struct logitech_rumble_f510_state prev_state;
     struct logitech_rumble_f510_state state;
     int key_queue[KEY_QUEUE_CAPACITY];
+    int key_queue_begin;
     int key_queue_size;
 };
 
-// static void generate_keys(struct grub_usb_gamepad_data *data)
-// {
-//     if (termdata->prev_state.dpad != termdata->state.dpad) {
-//         // TODO: generate_keys does not handle key_queue overflow
-//         key_queue[key_queue_size++] = dpad_mapping[termdata->state.dpad];
-//     }
-// }
+static inline
+void key_queue_push(struct grub_usb_gamepad_data *data, int key)
+{
+    data->key_queue[(data->key_queue_begin + data->key_queue_size) % KEY_QUEUE_CAPACITY] = key;
+
+    if (data->key_queue_size < KEY_QUEUE_CAPACITY) {
+        data->key_queue_size++;
+    } else {
+        data->key_queue_begin = (data->key_queue_begin + 1) % KEY_QUEUE_CAPACITY;
+    }
+}
+
+static inline
+int key_queue_pop(struct grub_usb_gamepad_data *data)
+{
+    if (data->key_queue_size <= 0) {
+        return GRUB_TERM_NO_KEY;
+    }
+
+    int key = data->key_queue[data->key_queue_begin];
+    data->key_queue_begin = (data->key_queue_begin + 1) % KEY_QUEUE_CAPACITY;
+    data->key_queue_size--;
+
+    return key;
+}
+
+static inline
+int is_pressed(grub_uint8_t buttons, int i)
+{
+    return buttons & (1 << i);
+}
+
+static void generate_keys(struct grub_usb_gamepad_data *data)
+{
+    if (data->prev_state.dpad != data->state.dpad) {
+        // TODO: generate_keys does not handle key_queue overflow
+        key_queue_push(data, dpad_mapping[data->state.dpad]);
+    }
+
+    for (int i = 0; i < BUTTONS_COUNT; ++i) {
+        if (!is_pressed(data->prev_state.buttons, i)
+            && is_pressed(data->state.buttons, i)) {
+            key_queue_push(data, button_mapping[i]);
+        }
+    }
+}
 
 static int
 usb_gamepad_getkey (struct grub_term_input *term)
@@ -123,40 +167,25 @@ usb_gamepad_getkey (struct grub_term_input *term)
     grub_size_t actual;
 
     grub_usb_err_t err = grub_usb_check_transfer (termdata->transfer, &actual);
-    if (err == GRUB_USB_ERR_WAIT)
-    {
-        return GRUB_TERM_NO_KEY;
+
+    if (err != GRUB_USB_ERR_WAIT) {
+        print_logitech_state(&termdata->state);
+
+        generate_keys(termdata);
+
+        termdata->transfer = grub_usb_bulk_read_background (
+            termdata->usbdev,
+            termdata->endp,
+            sizeof (termdata->state),
+            (char *) &termdata->state);
+
+        if (!termdata->transfer)
+        {
+            grub_print_error ();
+        }
     }
 
-    termdata->prev_state = termdata->state;
-
-    print_logitech_state(&termdata->state);
-
-    grub_dprintf("usb_gamepad", "Key down: %d\n", GRUB_TERM_KEY_DOWN);
-
-    int key = GRUB_TERM_NO_KEY;
-
-    key = dpad_mapping[termdata->state.dpad];
-
-    // TODO(#19): one usb report can represent several key strokes
-    //   And usb_gamepad_getkey does not support that.
-    if (termdata->state.buttons & (1 << 1)) {
-        key = '\n';
-    }
-
-    termdata->transfer = grub_usb_bulk_read_background (
-        termdata->usbdev,
-        termdata->endp,
-        sizeof (termdata->state),
-        (char *) &termdata->state);
-
-    if (!termdata->transfer)
-    {
-        grub_print_error ();
-        return key;
-    }
-
-    return key;
+    return key_queue_pop(termdata);
 }
 
 static int
@@ -208,6 +237,8 @@ grub_usb_gamepad_attach(grub_usb_device_t usbdev, int configno, int interfno)
     data->configno = configno;
     data->interfno = interfno;
     data->endp = endp;
+    data->key_queue_begin = 0;
+    data->key_queue_size = 0;
     usb_gamepad_input_term.data = data;
 
     data->prev_state = *((struct logitech_rumble_f510_state*) initial_state);
