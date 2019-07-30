@@ -12,20 +12,25 @@ GRUB_MOD_LICENSE ("GPLv3");
 #define USB_HID_SET_IDLE	0x0A
 #define USB_HID_SET_PROTOCOL	0x0B
 
-#define DPAD_UP 0x0
-#define DPAD_UPRIGHT 0x1
-#define DPAD_RIGHT 0x2
-#define DPAD_DOWNRIGHT 0x3
-#define DPAD_DOWN 0x4
-#define DPAD_DOWNLEFT 0x5
-#define DPAD_LEFT 0x6
-#define DPAD_UPLEFT 0x7
-#define DPAD_CENTERED 0x8
+typedef enum {
+    DPAD_UP = 0x0,
+    DPAD_UPRIGHT,
+    DPAD_RIGHT,
+    DPAD_DOWNRIGHT,
+    DPAD_DOWN,
+    DPAD_DOWNLEFT,
+    DPAD_LEFT,
+    DPAD_UPLEFT,
+    DPAD_CENTERED,
 
-static int dpad_mapping[9] = { GRUB_TERM_NO_KEY };
+    DPAD_COUNT
+} logitech_rumble_f510_dpad_t;
+
+
+static int dpad_mapping[DPAD_COUNT] = { GRUB_TERM_NO_KEY };
 // static int button_mapping[4] = { GRUB_TERM_NO_KEY };
 
-static const char *dpad_names[9] = {
+static const char *dpad_names[DPAD_COUNT] = {
     "up",
     "upright",
     "right",
@@ -234,7 +239,7 @@ grub_usb_gamepad_attach(grub_usb_device_t usbdev, int configno, int interfno)
 
 static int dpad_dir_by_name(const char *name)
 {
-    for (int i = 0; i < 9; ++i) {
+    for (int i = 0; i < DPAD_COUNT; ++i) {
         if (grub_strcmp(name, dpad_names[i]) == 0) {
             return i;
         }
