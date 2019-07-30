@@ -22,11 +22,6 @@ GRUB_MOD_LICENSE ("GPLv3");
 #define DPAD_UPLEFT 0x7
 #define DPAD_CENTERED 0x8
 
-#define BUTTON1_MASK 0x1
-#define BUTTON2_MASK 0x2
-#define BUTTON3_MASK 0x4
-#define BUTTON4_MASK 0x8
-
 static int dpad_mapping[9] = { GRUB_TERM_NO_KEY };
 // static int button_mapping[4] = { GRUB_TERM_NO_KEY };
 
