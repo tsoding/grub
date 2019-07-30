@@ -108,7 +108,7 @@ usb_gamepad_getkey (struct grub_term_input *term)
 
     key = dpad_mapping[logitech_report->dpad];
 
-    // TODO: one usb report can represent several key strokes
+    // TODO(#19): one usb report can represent several key strokes
     //   And usb_gamepad_getkey does not support that.
     if (logitech_report->button2) {
         key = '\n';
