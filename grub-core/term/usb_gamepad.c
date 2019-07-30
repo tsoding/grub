@@ -28,6 +28,7 @@ GRUB_MOD_LICENSE ("GPLv3");
 #define BUTTON4_MASK 0x8
 
 static int dpad_mapping[9] = { GRUB_TERM_NO_KEY };
+// static int button_mapping[4] = { GRUB_TERM_NO_KEY };
 
 static const char *dpad_names[9] = {
     "up",
@@ -97,6 +98,16 @@ void print_logitech_state(struct logitech_rumble_f510_state *state)
         state->back, state->start,
         state->ls, state->rs, state->mode);
 }
+
+// 80 7f 80 7f 08 00 04 ff
+// 00 00 00 00 08 00 04 ff
+
+static grub_uint8_t initial_state[8] = {
+    0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x04, 0xff
+};
+
+#define KEY_QUEUE_CAPACITY 32
+
 struct grub_usb_gamepad_data
 {
     grub_usb_device_t usbdev;
@@ -104,8 +115,19 @@ struct grub_usb_gamepad_data
     int interfno;
     struct grub_usb_desc_endp *endp;
     grub_usb_transfer_t transfer;
+    struct logitech_rumble_f510_state prev_state;
     struct logitech_rumble_f510_state state;
+    int key_queue[KEY_QUEUE_CAPACITY];
+    int key_queue_size;
 };
+
+// static void generate_keys(struct grub_usb_gamepad_data *data)
+// {
+//     if (termdata->prev_state.dpad != termdata->state.dpad) {
+//         // TODO: generate_keys does not handle key_queue overflow
+//         key_queue[key_queue_size++] = dpad_mapping[termdata->state.dpad];
+//     }
+// }
 
 static int
 usb_gamepad_getkey (struct grub_term_input *term)
@@ -119,6 +141,7 @@ usb_gamepad_getkey (struct grub_term_input *term)
         return GRUB_TERM_NO_KEY;
     }
 
+    termdata->prev_state = termdata->state;
 
     print_logitech_state(&termdata->state);
 
@@ -199,6 +222,8 @@ grub_usb_gamepad_attach(grub_usb_device_t usbdev, int configno, int interfno)
     data->interfno = interfno;
     data->endp = endp;
     usb_gamepad_input_term.data = data;
+
+    data->prev_state = *((struct logitech_rumble_f510_state*) initial_state);
 
     data->transfer = grub_usb_bulk_read_background (
         usbdev,
