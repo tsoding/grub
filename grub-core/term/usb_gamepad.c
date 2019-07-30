@@ -51,10 +51,7 @@ struct logitech_rumble_f510_state
     grub_uint8_t x2;
     grub_uint8_t y2;
     grub_uint8_t dpad: 4;
-    grub_uint8_t b1: 1;
-    grub_uint8_t b2: 1;
-    grub_uint8_t b3: 1;
-    grub_uint8_t b4: 1;
+    grub_uint8_t buttons: 4;
     grub_uint8_t lb: 1;
     grub_uint8_t rb: 1;
     grub_uint8_t lt: 1;
@@ -77,10 +74,7 @@ void print_logitech_state(struct logitech_rumble_f510_state *state)
         "x2: %u, "
         "y2: %u, "
         "dpad: %u, "
-        "b1: %u, "
-        "b2: %u, "
-        "b3: %u, "
-        "b4: %u, "
+        "buttons: %u, "
         "lb: %u, "
         "rb: %u, "
         "lt: %u, "
@@ -91,12 +85,12 @@ void print_logitech_state(struct logitech_rumble_f510_state *state)
         "rs: %u, "
         "mode: %u\n",
         state->x1, state->y1, state->x2, state->y2,
-        state->dpad,
-        state->b1, state->b2, state->b3, state->b4,
+        state->dpad, state->buttons,
         state->lb, state->rb,
         state->lt, state->rt,
         state->back, state->start,
-        state->ls, state->rs, state->mode);
+        state->ls, state->rs,
+        state->mode);
 }
 
 // 80 7f 80 7f 08 00 04 ff
@@ -153,7 +147,7 @@ usb_gamepad_getkey (struct grub_term_input *term)
 
     // TODO(#19): one usb report can represent several key strokes
     //   And usb_gamepad_getkey does not support that.
-    if (termdata->state.b2) {
+    if (termdata->state.buttons & (1 << 1)) {
         key = '\n';
     }
 
