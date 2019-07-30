@@ -197,11 +197,6 @@ grub_usb_gamepad_attach(grub_usb_device_t usbdev, int configno, int interfno)
     return 0;
 }
 
-static struct grub_usb_attach_desc attach_hook =
-{
-    .class = GRUB_USB_CLASS_HID,
-    .hook = grub_usb_gamepad_attach
-};
 
 static int dpad_dir_by_name(const char *name)
 {
@@ -275,6 +270,12 @@ grub_cmd_gamepad_dpad(grub_command_t cmd __attribute__((unused)),
 }
 
 static grub_command_t cmd_gamepad_dpad;
+
+static struct grub_usb_attach_desc attach_hook =
+{
+    .class = GRUB_USB_CLASS_HID,
+    .hook = grub_usb_gamepad_attach
+};
 
 GRUB_MOD_INIT(usb_gamepad)
 {
