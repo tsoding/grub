@@ -291,5 +291,5 @@ GRUB_MOD_FINI(usb_gamepad)
 {
     grub_unregister_command (cmd_gamepad_dpad);
     grub_dprintf("usb_gamepad", "Usb_Gamepad fini-ed\n");
-    // TODO: usb_gamepad does not uninitialize usb stuff on FINI
+    // TODO(#20): usb_gamepad does not uninitialize usb stuff on FINI
 }
