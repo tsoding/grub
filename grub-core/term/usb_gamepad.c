@@ -23,6 +23,7 @@ typedef enum {
 
 // TODO: dpad_mapping and button mapping should be probably part of grub_usb_gamepad_data
 static int dpad_mapping[DPAD_COUNT] = { GRUB_TERM_NO_KEY };
+// TODO: there is no way to configure button_mappings from the GRUB config
 static int button_mapping[BUTTONS_COUNT] = {
     GRUB_TERM_NO_KEY,
     '\n',
@@ -45,18 +46,22 @@ static const char *dpad_names[DPAD_COUNT] = {
 // TODO(#18): usb_gamepad has no respect to endianness
 struct logitech_rumble_f510_state
 {
+    // TODO: stick axis are not mappable
     grub_uint8_t x1;
     grub_uint8_t y1;
     grub_uint8_t x2;
     grub_uint8_t y2;
     grub_uint8_t dpad: 4;
     grub_uint8_t buttons: 4;
+    // TODO: bumpers and triggers are not mappable
     grub_uint8_t lb: 1;
     grub_uint8_t rb: 1;
     grub_uint8_t lt: 1;
     grub_uint8_t rt: 1;
+    // TODO: back/start are not mappable
     grub_uint8_t back: 1;
     grub_uint8_t start: 1;
+    // TODO: stick presses are not mappable
     grub_uint8_t ls: 1;
     grub_uint8_t rs: 1;
     grub_uint8_t mode;
@@ -90,9 +95,6 @@ void print_logitech_state(struct logitech_rumble_f510_state *state)
         state->ls, state->rs,
         state->mode);
 }
-
-// 80 7f 80 7f 08 00 04 ff
-// 00 00 00 00 08 00 04 ff
 
 static grub_uint8_t initial_state[8] = {
     0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x04, 0xff
@@ -271,6 +273,7 @@ static int dpad_dir_by_name(const char *name)
     return -1;
 }
 
+// TODO: key mnemonics are not sufficient
 static const char *key_names[] = {
     "key_up",
     "key_down"
