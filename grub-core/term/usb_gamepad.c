@@ -53,7 +53,7 @@ struct logitech_rumble_f510_state
     grub_uint8_t y2;
     grub_uint8_t dpad: 4;
     grub_uint8_t buttons: 4;
-    // TODO: bumpers and triggers are not mappable
+    // TODO(#25): bumpers and triggers are not mappable
     grub_uint8_t lb: 1;
     grub_uint8_t rb: 1;
     grub_uint8_t lt: 1;
