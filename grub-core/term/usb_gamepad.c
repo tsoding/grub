@@ -23,7 +23,7 @@ typedef enum {
 
 // TODO(#22): dpad_mapping and button mapping should be probably part of grub_usb_gamepad_data
 static int dpad_mapping[DPAD_COUNT] = { GRUB_TERM_NO_KEY };
-// TODO: there is no way to configure button_mappings from the GRUB config
+// TODO(#23): there is no way to configure button_mappings from the GRUB config
 static int button_mapping[BUTTONS_COUNT] = {
     GRUB_TERM_NO_KEY,
     '\n',
