@@ -61,7 +61,7 @@ struct logitech_rumble_f510_state
     // TODO(#26): back/start are not mappable
     grub_uint8_t back: 1;
     grub_uint8_t start: 1;
-    // TODO: stick presses are not mappable
+    // TODO(#27): stick presses are not mappable
     grub_uint8_t ls: 1;
     grub_uint8_t rs: 1;
     grub_uint8_t mode;
