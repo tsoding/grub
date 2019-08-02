@@ -21,6 +21,7 @@ typedef enum {
 
 #define BUTTONS_COUNT 4
 
+// TODO: dpad_mapping and button mapping should be probably part of grub_usb_gamepad_data
 static int dpad_mapping[DPAD_COUNT] = { GRUB_TERM_NO_KEY };
 static int button_mapping[BUTTONS_COUNT] = {
     GRUB_TERM_NO_KEY,
@@ -148,7 +149,6 @@ int is_pressed(grub_uint8_t buttons, int i)
 static void generate_keys(struct grub_usb_gamepad_data *data)
 {
     if (data->prev_state.dpad != data->state.dpad) {
-        // TODO: generate_keys does not handle key_queue overflow
         key_queue_push(data, dpad_mapping[data->state.dpad]);
     }
 
@@ -170,8 +170,8 @@ usb_gamepad_getkey (struct grub_term_input *term)
 
     if (err != GRUB_USB_ERR_WAIT) {
         print_logitech_state(&termdata->state);
-
         generate_keys(termdata);
+        termdata->prev_state = termdata->state;
 
         termdata->transfer = grub_usb_bulk_read_background (
             termdata->usbdev,
