@@ -46,7 +46,7 @@ static const char *dpad_names[DPAD_COUNT] = {
 // TODO(#18): usb_gamepad has no respect to endianness
 struct logitech_rumble_f510_state
 {
-    // TODO: stick axis are not mappable
+    // TODO(#24): stick axis are not mappable
     grub_uint8_t x1;
     grub_uint8_t y1;
     grub_uint8_t x2;
