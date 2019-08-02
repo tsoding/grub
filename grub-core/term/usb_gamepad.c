@@ -273,7 +273,7 @@ static int dpad_dir_by_name(const char *name)
     return -1;
 }
 
-// TODO: key mnemonics are not sufficient
+// TODO(#28): key mnemonics are not sufficient
 static const char *key_names[] = {
     "key_up",
     "key_down"
