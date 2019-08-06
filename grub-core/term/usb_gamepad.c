@@ -284,27 +284,99 @@ static int key_mapping[] = {
     GRUB_TERM_KEY_DOWN
 };
 
-static int keycode_by_name(const char *name)
+// TODO: it would be good to have some unit tests for parse_keycode_name
+static
+grub_err_t parse_keycode_name(const char *type,
+                              const char *input,
+                              int *keycode)
 {
-    const int n = sizeof(key_names) / sizeof(key_names[0]);
-    for (int i = 0; i < n; ++i) {
-        if (grub_strcmp(name, key_names[i]) == 0) {
-            return key_mapping[i];
+    if (grub_strcmp(type, "code") == 0) {
+        *keycode = grub_strtol(input, 0, 10);
+
+        if (grub_errno) {
+            return grub_error(grub_errno, N_("`%s` is not a number"), input);
         }
+    } else if (grub_strcmp(type, "char") == 0) {
+        if (grub_strlen(input) <= 0) {
+            return grub_error(
+                GRUB_ERR_BAD_ARGUMENT,
+                N_("Cannot accept an empty string as character for mapping"));
+        }
+
+        *keycode = input[0];
+    } else if (grub_strcmp(type, "name") == 0) {
+        const int n = sizeof(key_names) / sizeof(key_names[0]);
+        for (int i = 0; i < n; ++i) {
+            if (grub_strcmp(input, key_names[i]) == 0) {
+                *keycode = key_mapping[i];
+                return GRUB_ERR_NONE;
+            }
+        }
+
+        return grub_error(
+            GRUB_ERR_BAD_ARGUMENT,
+            N_("`%s` is not a correct key name"),
+            input);
+    } else {
+        return grub_error(
+            GRUB_ERR_BAD_ARGUMENT,
+            N_("`%s` is not a correct keycode mapping type"),
+            type);
     }
 
-    return -1;
+    return GRUB_ERR_NONE;
+}
+
+static grub_err_t
+grub_cmd_gamepad_buttons(grub_command_t cmd __attribute__((unused)),
+                         int argc, char **args)
+{
+#define N 3
+    if (argc < N) {
+        return grub_error(
+            GRUB_ERR_BAD_ARGUMENT,
+            N_("Expected at least %d arguments"),
+            N);
+    }
+#undef N
+
+    long button_number = grub_strtol(args[0], 0, 10);
+    if (grub_errno) {
+        return grub_error(
+            grub_errno,
+            N_("Expected button number. `%s` is not a number."),
+            args[0]);
+    }
+
+    if (!(0 <= button_number && button_number < 4)) {
+        return grub_error(
+            GRUB_ERR_BAD_ARGUMENT,
+            N_("Button number should be within the range of 0-3."));
+    }
+
+    int keycode = 0;
+    grub_err_t err = parse_keycode_name(args[1], args[2], &keycode);
+    if (err) {
+        return err;
+    }
+
+    button_mapping[button_number] = keycode;
+
+    return GRUB_ERR_NONE;
 }
 
 static grub_err_t
 grub_cmd_gamepad_dpad(grub_command_t cmd __attribute__((unused)),
                       int argc, char **args)
 {
-    if (argc < 2) {
+#define N 3
+    if (argc < N) {
         return grub_error(
             GRUB_ERR_BAD_ARGUMENT,
-            N_("Expected at least two arguments"));
+            N_("Expected at least %d arguments"),
+            N);
     }
+#undef N
 
     const char *dpad_dir_name = args[0];
     int dpad_dir = dpad_dir_by_name(dpad_dir_name);
@@ -316,26 +388,20 @@ grub_cmd_gamepad_dpad(grub_command_t cmd __attribute__((unused)),
             dpad_dir_name);
     }
 
-    const char *key_name = args[1];
-    int keycode = keycode_by_name(key_name);
-    if (keycode < 0) {
-        return grub_error(
-            GRUB_ERR_BAD_ARGUMENT,
-            N_("%s is not a correct key mnemonic"),
-            key_name);
+    int keycode = 0;
+    grub_err_t err = parse_keycode_name(args[1], args[2], &keycode);
+    if (err) {
+        return err;
     }
 
     dpad_mapping[dpad_dir] = keycode;
 
-    grub_dprintf(
-        "usb_keyboard",
-        "Dpad direction %s was mapped to keycode %d\n",
-        dpad_dir_name, keycode);
-
     return GRUB_ERR_NONE;
 }
 
+// TODO: grub command handlers should be just an array
 static grub_command_t cmd_gamepad_dpad;
+static grub_command_t cmd_gamepad_buttons;
 
 static struct grub_usb_attach_desc attach_hook =
 {
@@ -346,17 +412,26 @@ static struct grub_usb_attach_desc attach_hook =
 GRUB_MOD_INIT(usb_gamepad)
 {
     grub_dprintf("usb_gamepad", "Usb_Gamepad module loaded\n");
+
     cmd_gamepad_dpad = grub_register_command(
         "gamepad_dpad",
         grub_cmd_gamepad_dpad,
         N_("<dpad-direction> <keycode>"),
         N_("Map gamepad dpad direction to a keycode"));
+
+    cmd_gamepad_buttons = grub_register_command(
+        "gamepad_buttons",
+        grub_cmd_gamepad_buttons,
+        N_("<button-number> <keycode>"),
+        N_("Map gempad button to a keycode"));
+
     grub_usb_register_attach_hook_class(&attach_hook);
 }
 
 GRUB_MOD_FINI(usb_gamepad)
 {
     grub_unregister_command (cmd_gamepad_dpad);
+    grub_unregister_command (cmd_gamepad_buttons);
     grub_dprintf("usb_gamepad", "Usb_Gamepad fini-ed\n");
     // TODO(#20): usb_gamepad does not uninitialize usb stuff on FINI
 }
