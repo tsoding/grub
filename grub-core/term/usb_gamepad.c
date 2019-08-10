@@ -284,7 +284,7 @@ static int key_mapping[] = {
     GRUB_TERM_KEY_DOWN
 };
 
-// TODO: it would be good to have some unit tests for parse_keycode_name
+// TODO(#33): it would be good to have some unit tests for parse_keycode_name
 static
 grub_err_t parse_keycode_name(const char *type,
                               const char *input,
