@@ -399,7 +399,7 @@ grub_cmd_gamepad_dpad(grub_command_t cmd __attribute__((unused)),
     return GRUB_ERR_NONE;
 }
 
-// TODO: grub command handlers should be just an array
+// TODO(#31): grub command handlers should be just an array
 static grub_command_t cmd_gamepad_dpad;
 static grub_command_t cmd_gamepad_buttons;
 
