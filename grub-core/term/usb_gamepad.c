@@ -142,7 +142,7 @@ static logitech_rumble_f510_dir_t
 dir_by_coords(grub_uint8_t x __attribute__ ((unused)),
               grub_uint8_t y __attribute__ ((unused)))
 {
-    // TODO: dir_by_coords is not implemented
+    // TODO(#38): dir_by_coords is not implemented
     return DIR_CENTERED;
 }
 
