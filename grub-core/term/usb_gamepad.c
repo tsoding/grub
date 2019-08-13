@@ -33,6 +33,7 @@ static int dpad_mapping[DPAD_COUNT] = { GRUB_TERM_NO_KEY };
 // TODO(#23): there is no way to configure button_mappings from the GRUB config
 static int button_mapping[BUTTONS_COUNT] = { GRUB_TERM_NO_KEY };
 static int bumper_mapping[SIDE_COUNT] = { GRUB_TERM_NO_KEY };
+static int trigger_mapping[SIDE_COUNT] = { GRUB_TERM_NO_KEY };
 
 static const char *dpad_names[DPAD_COUNT] = {
     "up",
@@ -57,8 +58,7 @@ struct logitech_rumble_f510_state
     grub_uint8_t dpad: 4;
     grub_uint8_t buttons: 4;
     grub_uint8_t bumpers: 2;
-    grub_uint8_t lt: 1;
-    grub_uint8_t rt: 1;
+    grub_uint8_t triggers: 2;
     // TODO(#26): back/start are not mappable
     grub_uint8_t back: 1;
     grub_uint8_t start: 1;
@@ -80,8 +80,7 @@ void print_logitech_state(struct logitech_rumble_f510_state *state)
         "dpad: %u, "
         "buttons: %u, "
         "bumpers: %u, "
-        "lt: %u, "
-        "rt: %u, "
+        "triggers: %u, "
         "back: %u, "
         "start: %u, "
         "ls: %u, "
@@ -90,7 +89,7 @@ void print_logitech_state(struct logitech_rumble_f510_state *state)
         state->x1, state->y1, state->x2, state->y2,
         state->dpad, state->buttons,
         state->bumpers,
-        state->lt, state->rt,
+        state->triggers,
         state->back, state->start,
         state->ls, state->rs,
         state->mode);
@@ -165,6 +164,11 @@ static void generate_keys(struct grub_usb_gamepad_data *data)
         if (!is_pressed(data->prev_state.bumpers, i)
             && is_pressed(data->state.bumpers, i)) {
             key_queue_push(data, bumper_mapping[i]);
+        }
+
+        if (!is_pressed(data->prev_state.triggers, i)
+            && is_pressed(data->state.triggers, i)) {
+            key_queue_push(data, trigger_mapping[i]);
         }
     }
 }
@@ -425,9 +429,9 @@ grub_err_t parse_gamepad_side(const char *side_name,
 }
 
 static grub_err_t
-grub_cmd_gamepad_bumper(grub_command_t cmd __attribute__((unused)),
-                        int argc __attribute__((unused)),
-                        char **args __attribute__((unused)))
+grub_cmd_gamepad_sided(grub_command_t cmd __attribute__((unused)),
+                       int argc,
+                       char **args)
 {
 #define N 3
     if (argc < N) {
@@ -450,16 +454,24 @@ grub_cmd_gamepad_bumper(grub_command_t cmd __attribute__((unused)),
         return err;
     }
 
-    bumper_mapping[side] = keycode;
+    switch (cmd->name[8]) {
+    case 'b': {
+        bumper_mapping[side] = keycode;
+    } break;
+
+    case 't': {
+        trigger_mapping[side] = keycode;
+    } break;
+    }
 
     return GRUB_ERR_NONE;
 }
-
 
 // TODO(#31): grub command handlers should be just an array
 static grub_command_t cmd_gamepad_dpad;
 static grub_command_t cmd_gamepad_buttons;
 static grub_command_t cmd_gamepad_bumper;
+static grub_command_t cmd_gamepad_trigger;
 
 static struct grub_usb_attach_desc attach_hook =
 {
@@ -485,9 +497,15 @@ GRUB_MOD_INIT(usb_gamepad)
 
     cmd_gamepad_bumper = grub_register_command(
         "gamepad_bumper",
-        grub_cmd_gamepad_bumper,
+        grub_cmd_gamepad_sided,
         N_("<button-side> <key>"),
         N_("Map gamepad bumper to a key"));
+
+    cmd_gamepad_trigger = grub_register_command(
+        "gamepad_trigger",
+        grub_cmd_gamepad_sided,
+        N_("<button-side> <key>"),
+        N_("Map gamepad trigger to a key"));
 
     grub_usb_register_attach_hook_class(&attach_hook);
 }
