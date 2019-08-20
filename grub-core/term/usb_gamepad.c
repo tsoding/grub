@@ -492,11 +492,9 @@ grub_err_t parse_gamepad_side(const char *side_name,
 }
 
 static grub_err_t
-grub_cmd_gamepad_sided(grub_command_t cmd __attribute__((unused)),
-                       int argc,
-                       char **args)
+grub_cmd_gamepad_sided(grub_command_t cmd, int argc, char **args)
 {
-#define N 3
+#define N 2
     if (argc < N) {
         return grub_error(
             GRUB_ERR_BAD_ARGUMENT,
@@ -505,19 +503,18 @@ grub_cmd_gamepad_sided(grub_command_t cmd __attribute__((unused)),
     }
 #undef N
 
-    logitech_rumble_f510_side_t side = 0;
-    grub_err_t err = parse_gamepad_side(args[0], &side);
-    if (err) {
-        return err;
-    }
+    logitech_rumble_f510_side_t side =
+        cmd->name[8] == 'l'
+        ? SIDE_LEFT
+        : SIDE_RIGHT;
 
     int keycode = 0;
-    err = parse_keycode_name(args[1], args[2], &keycode);
+    grub_err_t err = parse_keycode_name(args[0], args[1], &keycode);
     if (err) {
         return err;
     }
 
-    switch (cmd->name[8]) {
+    switch (cmd->name[9]) {
     case 'b': {
         bumper_mapping[side] = keycode;
     } break;
@@ -544,7 +541,7 @@ grub_cmd_gamepad_stick(grub_command_t cmd __attribute__((unused)),
     }
 #undef N
 
-    logitech_rumble_f510_side_t side;
+    logitech_rumble_f510_side_t side = 0;
     grub_err_t err = parse_gamepad_side(args[0], &side);
     if (err) {
         return err;
@@ -568,11 +565,12 @@ grub_cmd_gamepad_stick(grub_command_t cmd __attribute__((unused)),
 }
 
 // TODO(#31): grub command handlers should be just an array
-static grub_command_t cmd_gamepad_dpad;
-static grub_command_t cmd_gamepad_btn;
-static grub_command_t cmd_gamepad_bumper;
-static grub_command_t cmd_gamepad_trigger;
-static grub_command_t cmd_gamepad_stick;
+static grub_command_t cmd_gamepad_dpad,
+    cmd_gamepad_btn,
+    cmd_gamepad_lb,
+    cmd_gamepad_rb,
+    cmd_gamepad_trigger,
+    cmd_gamepad_stick;
 
 static struct grub_usb_attach_desc attach_hook =
 {
@@ -596,8 +594,14 @@ GRUB_MOD_INIT(usb_gamepad)
         N_("<button-number> <key>"),
         N_("Map gamepad button to a key"));
 
-    cmd_gamepad_bumper = grub_register_command(
-        "gamepad_bumper",
+    cmd_gamepad_lb = grub_register_command(
+        "gamepad_lb",
+        grub_cmd_gamepad_sided,
+        N_("<button-side> <key>"),
+        N_("Map gamepad bumper to a key"));
+
+    cmd_gamepad_rb = grub_register_command(
+        "gamepad_rb",
         grub_cmd_gamepad_sided,
         N_("<button-side> <key>"),
         N_("Map gamepad bumper to a key"));
@@ -621,7 +625,8 @@ GRUB_MOD_FINI(usb_gamepad)
 {
     grub_unregister_command (cmd_gamepad_dpad);
     grub_unregister_command (cmd_gamepad_btn);
-    grub_unregister_command (cmd_gamepad_bumper);
+    grub_unregister_command (cmd_gamepad_lb);
+    grub_unregister_command (cmd_gamepad_rb);
     grub_unregister_command (cmd_gamepad_trigger);
     grub_unregister_command (cmd_gamepad_stick);
     grub_dprintf("usb_gamepad", "Usb_Gamepad fini-ed\n");
