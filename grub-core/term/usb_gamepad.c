@@ -138,11 +138,49 @@ int is_pressed(grub_uint8_t buttons, int i)
     return buttons & (1 << i);
 }
 
-static logitech_rumble_f510_dir_t
-dir_by_coords(grub_uint8_t x __attribute__ ((unused)),
-              grub_uint8_t y __attribute__ ((unused)))
+static inline
+grub_int32_t abs(grub_int32_t a)
 {
-    // TODO(#38): dir_by_coords is not implemented
+    return a < 0 ? -a : a;
+}
+
+static logitech_rumble_f510_dir_t
+dir_by_coords(grub_uint8_t x0, grub_uint8_t y0)
+{
+    grub_int32_t x = x0;
+    grub_int32_t y = y0;
+    x -= 127;
+    y -= 127;
+
+    const grub_int32_t t = 3276;
+
+    if (x * x + y * y > t) {
+        const grub_int32_t d = 40;
+#define POS(a) ((a) > (d))
+#define ZERO(a) (abs(a) <= (d))
+#define NEG(a) ((a) < -(d))
+        if (POS(x) && ZERO(y)) {
+            return DIR_RIGHT;
+        } else if (POS(x) && NEG(y)) {
+            return DIR_UPRIGHT;
+        } else if (ZERO(x) && NEG(y)) {
+            return DIR_UP;
+        } else if (NEG(x) && NEG(y)) {
+            return DIR_UPLEFT;
+        } else if (NEG(x) && ZERO(y)) {
+            return DIR_LEFT;
+        } else if (NEG(x) && POS(y)) {
+            return DIR_DOWNLEFT;
+        } else if (ZERO(x) && POS(y)) {
+            return DIR_DOWN;
+        } else if (POS(x) && POS(y)) {
+            return DIR_DOWNRIGHT;
+        }
+#undef POS
+#undef ZERO
+#undef NEG
+    }
+
     return DIR_CENTERED;
 }
 
