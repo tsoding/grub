@@ -323,15 +323,7 @@ grub_usb_gamepad_attach(grub_usb_device_t usbdev, int configno, int interfno)
 }
 
 static const char *dir_names[DIR_COUNT] = {
-    "up",
-    "upright",
-    "right",
-    "downright",
-    "down",
-    "downleft",
-    "left",
-    "upleft",
-    "centered"
+    "U", "UR", "R", "DR", "D", "DL", "L", "UL", "C"
 };
 
 static grub_err_t
