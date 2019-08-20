@@ -569,7 +569,8 @@ static grub_command_t cmd_gamepad_dpad,
     cmd_gamepad_btn,
     cmd_gamepad_lb,
     cmd_gamepad_rb,
-    cmd_gamepad_trigger,
+    cmd_gamepad_lt,
+    cmd_gamepad_rt,
     cmd_gamepad_stick;
 
 static struct grub_usb_attach_desc attach_hook =
@@ -606,8 +607,14 @@ GRUB_MOD_INIT(usb_gamepad)
         N_("<button-side> <key>"),
         N_("Map gamepad bumper to a key"));
 
-    cmd_gamepad_trigger = grub_register_command(
-        "gamepad_trigger",
+    cmd_gamepad_lt = grub_register_command(
+        "gamepad_lt",
+        grub_cmd_gamepad_sided,
+        N_("<button-side> <key>"),
+        N_("Map gamepad trigger to a key"));
+
+    cmd_gamepad_rt = grub_register_command(
+        "gamepad_rt",
         grub_cmd_gamepad_sided,
         N_("<button-side> <key>"),
         N_("Map gamepad trigger to a key"));
@@ -627,7 +634,8 @@ GRUB_MOD_FINI(usb_gamepad)
     grub_unregister_command (cmd_gamepad_btn);
     grub_unregister_command (cmd_gamepad_lb);
     grub_unregister_command (cmd_gamepad_rb);
-    grub_unregister_command (cmd_gamepad_trigger);
+    grub_unregister_command (cmd_gamepad_lt);
+    grub_unregister_command (cmd_gamepad_rt);
     grub_unregister_command (cmd_gamepad_stick);
     grub_dprintf("usb_gamepad", "Usb_Gamepad fini-ed\n");
     // TODO(#20): usb_gamepad does not uninitialize usb stuff on FINI
