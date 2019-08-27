@@ -43,7 +43,7 @@ static int stick_press_mapping[SIDE_COUNT] = { GRUB_TERM_NO_KEY };
 // TODO(#18): usb_gamepad has no respect to endianness
 struct logitech_rumble_f510_state
 {
-    grub_uint8_t sticks[SIDE_COUNT * 2];
+    grub_uint8_t stick_axes[SIDE_COUNT * 2];
     grub_uint8_t dpad: 4;
     grub_uint8_t buttons: 4;
     grub_uint8_t bumpers: 2;
@@ -74,10 +74,10 @@ void print_logitech_state(struct logitech_rumble_f510_state *state)
         "ls: %u, "
         "rs: %u, "
         "mode: %u\n",
-        state->sticks[0],
-        state->sticks[1],
-        state->sticks[2],
-        state->sticks[3],
+        state->stick_axes[0],
+        state->stick_axes[1],
+        state->stick_axes[2],
+        state->stick_axes[3],
         state->dpad, state->buttons,
         state->bumpers,
         state->triggers,
@@ -209,12 +209,12 @@ static void generate_keys(struct grub_usb_gamepad_data *data)
         }
 
         logitech_rumble_f510_dir_t prev_dir = dir_by_coords(
-            data->prev_state.sticks[side * 2 + STICK_X],
-            data->prev_state.sticks[side * 2 + STICK_Y]);
+            data->prev_state.stick_axes[side * 2 + STICK_X],
+            data->prev_state.stick_axes[side * 2 + STICK_Y]);
 
         logitech_rumble_f510_dir_t dir = dir_by_coords(
-            data->state.sticks[side * 2 + STICK_X],
-            data->state.sticks[side * 2 + STICK_Y]);
+            data->state.stick_axes[side * 2 + STICK_X],
+            data->state.stick_axes[side * 2 + STICK_Y]);
 
         if (prev_dir != dir) {
             key_queue_push(data, stick_mapping[side][dir]);
