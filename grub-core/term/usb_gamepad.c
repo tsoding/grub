@@ -49,9 +49,7 @@ struct logitech_rumble_f510_state
     grub_uint8_t buttons: 4;
     grub_uint8_t bumpers: 2;
     grub_uint8_t triggers: 2;
-    // TODO(#26): back/start are not mappable
-    grub_uint8_t back: 1;
-    grub_uint8_t start: 1;
+    grub_uint8_t options: 2;
     grub_uint8_t sticks: 2;
     grub_uint8_t mode;
     grub_uint8_t padding;
@@ -69,8 +67,7 @@ void print_logitech_state(struct logitech_rumble_f510_state *state)
         "buttons: %u, "
         "bumpers: %u, "
         "triggers: %u, "
-        "back: %u, "
-        "start: %u, "
+        "options: %u, "
         "sticks: %u, "
         "mode: %u\n",
         state->stick_axes[0],
@@ -80,7 +77,7 @@ void print_logitech_state(struct logitech_rumble_f510_state *state)
         state->dpad, state->buttons,
         state->bumpers,
         state->triggers,
-        state->back, state->start,
+        state->options,
         state->sticks,
         state->mode);
 }
@@ -222,6 +219,11 @@ static void generate_keys(struct grub_usb_gamepad_data *data)
         if (!is_pressed(data->prev_state.sticks, side)
             && is_pressed(data->state.sticks, side)) {
             key_queue_push(data, stick_press_mapping[side]);
+        }
+
+        if (!is_pressed(data->prev_state.options, side)
+            && is_pressed(data->state.options, side)) {
+            key_queue_push(data, options_mapping[side]);
         }
     }
 }
