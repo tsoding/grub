@@ -630,50 +630,50 @@ GRUB_MOD_INIT(usb_gamepad)
     cmd_gamepad_lb = grub_register_command(
         "gamepad_lb",
         grub_cmd_gamepad_sided,
-        N_("<button-side> <key>"),
-        N_("Map gamepad bumper to a key"));
+        N_("<key>"),
+        N_("Map gamepad Left Bumper to a key"));
 
     cmd_gamepad_rb = grub_register_command(
         "gamepad_rb",
         grub_cmd_gamepad_sided,
-        N_("<button-side> <key>"),
-        N_("Map gamepad bumper to a key"));
+        N_("<key>"),
+        N_("Map gamepad Right Bumper to a key"));
 
     cmd_gamepad_lt = grub_register_command(
         "gamepad_lt",
         grub_cmd_gamepad_sided,
-        N_("<button-side> <key>"),
-        N_("Map gamepad trigger to a key"));
+        N_("<key>"),
+        N_("Map gamepad Left Trigger to a key"));
 
     cmd_gamepad_rt = grub_register_command(
         "gamepad_rt",
         grub_cmd_gamepad_sided,
-        N_("<button-side> <key>"),
-        N_("Map gamepad trigger to a key"));
+        N_("<key>"),
+        N_("Map gamepad Right Trigger to a key"));
 
     cmd_gamepad_ls = grub_register_command(
         "gamepad_ls",
         grub_cmd_gamepad_sided,
-        N_("<side> <stick-direction> <key>"),
-        N_("Map gamepad stick direction to a key"));
+        N_("<direction|P> <key>"),
+        N_("Map gamepad Left Stick Action to a key"));
 
     cmd_gamepad_rs = grub_register_command(
         "gamepad_rs",
         grub_cmd_gamepad_sided,
-        N_("<side> <stick-direction> <key>"),
-        N_("Map gamepad stick direction to a key"));
+        N_("<direction|P> <key>"),
+        N_("Map gamepad Right Stick Action to a key"));
 
     cmd_gamepad_back = grub_register_command(
         "gamepad_back",
         grub_cmd_gamepad_options,
         N_("<key>"),
-        N_("Map gamepad back button to a key"));
+        N_("Map gamepad Back button to a key"));
 
     cmd_gamepad_start = grub_register_command(
         "gamepad_start",
         grub_cmd_gamepad_options,
         N_("<key>"),
-        N_("Map gamepad start button to a key"));
+        N_("Map gamepad Start button to a key"));
 
     grub_usb_register_attach_hook_class(&attach_hook);
 }
