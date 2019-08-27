@@ -322,17 +322,45 @@ grub_usb_gamepad_attach(grub_usb_device_t usbdev, int configno, int interfno)
     return 0;
 }
 
-static const char *dir_names[DIR_COUNT] = {
-    "U", "UR", "R", "DR", "D", "DL", "L", "UL", "C"
+static const char *dir_names[] = {
+    "U",
+    "UR",
+    "RU",
+    "R",
+    "DR",
+    "RD",
+    "D",
+    "DL",
+    "LD",
+    "L",
+    "UL",
+    "LU",
+    "C"
+};
+#define DIR_NAMES_COUNT (sizeof(dir_names) / sizeof(dir_names[0]))
+static const logitech_rumble_f510_dir_t dir_value[DIR_NAMES_COUNT] = {
+    DIR_UP,
+    DIR_UPRIGHT,
+    DIR_UPRIGHT,
+    DIR_RIGHT,
+    DIR_DOWNRIGHT,
+    DIR_DOWNRIGHT,
+    DIR_DOWN,
+    DIR_DOWNLEFT,
+    DIR_DOWNLEFT,
+    DIR_LEFT,
+    DIR_UPLEFT,
+    DIR_UPLEFT,
+    DIR_CENTERED
 };
 
 static grub_err_t
 parse_dir_by_name(const char *name,
                   logitech_rumble_f510_dir_t *dir)
 {
-    for (int i = 0; i < DIR_COUNT; ++i) {
+    for (grub_size_t i = 0; i < DIR_NAMES_COUNT; ++i) {
         if (grub_strcmp(name, dir_names[i]) == 0) {
-            *dir = i;
+            *dir = dir_value[i];
             return GRUB_ERR_NONE;
         }
     }
