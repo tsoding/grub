@@ -38,6 +38,7 @@ static int button_mapping[BUTTONS_COUNT] = { GRUB_TERM_NO_KEY };
 static int bumper_mapping[SIDE_COUNT] = { GRUB_TERM_NO_KEY };
 static int trigger_mapping[SIDE_COUNT] = { GRUB_TERM_NO_KEY };
 static int stick_mapping[SIDE_COUNT][DIR_COUNT] = { GRUB_TERM_NO_KEY };
+static int stick_press_mapping[SIDE_COUNT] = { GRUB_TERM_NO_KEY };
 
 // TODO(#18): usb_gamepad has no respect to endianness
 struct logitech_rumble_f510_state
@@ -50,7 +51,6 @@ struct logitech_rumble_f510_state
     // TODO(#26): back/start are not mappable
     grub_uint8_t back: 1;
     grub_uint8_t start: 1;
-    // TODO(#27): stick presses are not mappable
     grub_uint8_t ls: 1;
     grub_uint8_t rs: 1;
     grub_uint8_t mode;
@@ -497,12 +497,14 @@ static grub_err_t
 grub_cmd_gamepad_sided(grub_command_t cmd, int argc, char **args)
 {
 #define ASSERT_ARGC(N)                                  \
-    if (argc < N) {                                     \
-        return grub_error(                              \
-            GRUB_ERR_BAD_ARGUMENT,                      \
-            N_("Expected at least %d arguments"),       \
-            N);                                         \
-    }
+    do {                                                \
+        if (argc < N) {                                 \
+            return grub_error(                          \
+                GRUB_ERR_BAD_ARGUMENT,                  \
+                N_("Expected at least %d arguments"),   \
+                N);                                     \
+        }                                               \
+    } while(0)
 
     logitech_rumble_f510_side_t side =
         cmd->name[8] == 'l'
@@ -511,12 +513,13 @@ grub_cmd_gamepad_sided(grub_command_t cmd, int argc, char **args)
 
     logitech_rumble_f510_dir_t dir = DIR_CENTERED;
     int keycode = 0;
+    grub_err_t err = GRUB_ERR_NONE;
 
     switch (cmd->name[9]) {
     case 'b': {
-        ASSERT_ARGC(2)
+        ASSERT_ARGC(2);
 
-        grub_err_t err = parse_keycode_name(args[0], args[1], &keycode);
+        err = parse_keycode_name(args[0], args[1], &keycode);
         if (err) {
             return err;
         }
@@ -525,9 +528,9 @@ grub_cmd_gamepad_sided(grub_command_t cmd, int argc, char **args)
     } break;
 
     case 't': {
-        ASSERT_ARGC(2)
+        ASSERT_ARGC(2);
 
-        grub_err_t err = parse_keycode_name(args[0], args[1], &keycode);
+        err = parse_keycode_name(args[0], args[1], &keycode);
         if (err) {
             return err;
         }
@@ -536,19 +539,28 @@ grub_cmd_gamepad_sided(grub_command_t cmd, int argc, char **args)
     } break;
 
     case 's': {
-        ASSERT_ARGC(3)
+        ASSERT_ARGC(3);
 
-        grub_err_t err = parse_dir_by_name(args[0], &dir);
-        if (err) {
-            return err;
+        if (grub_strcmp(args[0], "P") == 0) {
+            err = parse_keycode_name(args[1], args[2], &keycode);
+            if (err) {
+                return err;
+            }
+
+            stick_press_mapping[side] = keycode;
+        } else {
+            err = parse_dir_by_name(args[0], &dir);
+            if (err) {
+                return err;
+            }
+
+            err = parse_keycode_name(args[1], args[2], &keycode);
+            if (err) {
+                return err;
+            }
+
+            stick_mapping[side][dir] = keycode;
         }
-
-        err = parse_keycode_name(args[1], args[2], &keycode);
-        if (err) {
-            return err;
-        }
-
-        stick_mapping[side][dir] = keycode;
     } break;
     }
 
