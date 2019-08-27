@@ -431,18 +431,21 @@ grub_err_t parse_keycode_name(const char *type,
     return GRUB_ERR_NONE;
 }
 
+#define ASSERT_ARGC(argc, N)                            \
+    do {                                                \
+        if (argc < N) {                                 \
+            return grub_error(                          \
+                GRUB_ERR_BAD_ARGUMENT,                  \
+                N_("Expected at least %d arguments"),   \
+                N);                                     \
+        }                                               \
+    } while(0)
+
 static grub_err_t
 grub_cmd_gamepad_btn(grub_command_t cmd __attribute__((unused)),
-                         int argc, char **args)
+                     int argc, char **args)
 {
-#define N 3
-    if (argc < N) {
-        return grub_error(
-            GRUB_ERR_BAD_ARGUMENT,
-            N_("Expected at least %d arguments"),
-            N);
-    }
-#undef N
+    ASSERT_ARGC(argc, 3);
 
     long button_number = grub_strtol(args[0], 0, 10);
     if (grub_errno) {
@@ -473,14 +476,7 @@ static grub_err_t
 grub_cmd_gamepad_dpad(grub_command_t cmd __attribute__((unused)),
                       int argc, char **args)
 {
-#define N 3
-    if (argc < N) {
-        return grub_error(
-            GRUB_ERR_BAD_ARGUMENT,
-            N_("Expected at least %d arguments"),
-            N);
-    }
-#undef N
+    ASSERT_ARGC(argc, 3);
 
     logitech_rumble_f510_dir_t dpad_dir = 0;
     grub_err_t err = parse_dir_by_name(args[0], &dpad_dir);
@@ -498,16 +494,6 @@ grub_cmd_gamepad_dpad(grub_command_t cmd __attribute__((unused)),
 
     return GRUB_ERR_NONE;
 }
-
-#define ASSERT_ARGC(argc, N)                            \
-    do {                                                \
-        if (argc < N) {                                 \
-            return grub_error(                          \
-                GRUB_ERR_BAD_ARGUMENT,                  \
-                N_("Expected at least %d arguments"),   \
-                N);                                     \
-        }                                               \
-    } while(0)
 
 static grub_err_t
 grub_cmd_gamepad_sided(grub_command_t cmd, int argc, char **args)
