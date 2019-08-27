@@ -39,6 +39,7 @@ static int bumper_mapping[SIDE_COUNT] = { GRUB_TERM_NO_KEY };
 static int trigger_mapping[SIDE_COUNT] = { GRUB_TERM_NO_KEY };
 static int stick_mapping[SIDE_COUNT][DIR_COUNT] = { GRUB_TERM_NO_KEY };
 static int stick_press_mapping[SIDE_COUNT] = { GRUB_TERM_NO_KEY };
+static int options_mapping[SIDE_COUNT] = { GRUB_TERM_NO_KEY };
 
 // TODO(#18): usb_gamepad has no respect to endianness
 struct logitech_rumble_f510_state
@@ -496,10 +497,7 @@ grub_cmd_gamepad_dpad(grub_command_t cmd __attribute__((unused)),
     return GRUB_ERR_NONE;
 }
 
-static grub_err_t
-grub_cmd_gamepad_sided(grub_command_t cmd, int argc, char **args)
-{
-#define ASSERT_ARGC(N)                                  \
+#define ASSERT_ARGC(argc, N)                            \
     do {                                                \
         if (argc < N) {                                 \
             return grub_error(                          \
@@ -509,6 +507,9 @@ grub_cmd_gamepad_sided(grub_command_t cmd, int argc, char **args)
         }                                               \
     } while(0)
 
+static grub_err_t
+grub_cmd_gamepad_sided(grub_command_t cmd, int argc, char **args)
+{
     logitech_rumble_f510_side_t side =
         cmd->name[8] == 'l'
         ? SIDE_LEFT
@@ -520,7 +521,7 @@ grub_cmd_gamepad_sided(grub_command_t cmd, int argc, char **args)
 
     switch (cmd->name[9]) {
     case 'b': {
-        ASSERT_ARGC(2);
+        ASSERT_ARGC(argc, 2);
 
         err = parse_keycode_name(args[0], args[1], &keycode);
         if (err) {
@@ -531,7 +532,7 @@ grub_cmd_gamepad_sided(grub_command_t cmd, int argc, char **args)
     } break;
 
     case 't': {
-        ASSERT_ARGC(2);
+        ASSERT_ARGC(argc, 2);
 
         err = parse_keycode_name(args[0], args[1], &keycode);
         if (err) {
@@ -542,7 +543,7 @@ grub_cmd_gamepad_sided(grub_command_t cmd, int argc, char **args)
     } break;
 
     case 's': {
-        ASSERT_ARGC(3);
+        ASSERT_ARGC(argc, 3);
 
         if (grub_strcmp(args[0], "P") == 0) {
             err = parse_keycode_name(args[1], args[2], &keycode);
@@ -568,7 +569,26 @@ grub_cmd_gamepad_sided(grub_command_t cmd, int argc, char **args)
     }
 
     return GRUB_ERR_NONE;
-#undef ASSERT_ARGC
+}
+
+static grub_err_t
+grub_cmd_gamepad_options(grub_command_t cmd, int argc, char **args)
+{
+    ASSERT_ARGC(argc, 2);
+
+    int keycode = 0;
+    grub_err_t err = parse_keycode_name(args[0], args[1], &keycode);
+    if (err) {
+        return err;
+    }
+
+    if (cmd->name[8] == 'b') {
+        options_mapping[SIDE_LEFT] = keycode;
+    } else if (cmd->name[8] == 's') {
+        options_mapping[SIDE_RIGHT] = keycode;
+    }
+
+    return GRUB_ERR_NONE;
 }
 
 // TODO(#31): grub command handlers should be just an array
@@ -579,7 +599,9 @@ static grub_command_t cmd_gamepad_dpad,
     cmd_gamepad_lt,
     cmd_gamepad_rt,
     cmd_gamepad_ls,
-    cmd_gamepad_rs;
+    cmd_gamepad_rs,
+    cmd_gamepad_back,
+    cmd_gamepad_start;
 
 static struct grub_usb_attach_desc attach_hook =
 {
@@ -639,6 +661,18 @@ GRUB_MOD_INIT(usb_gamepad)
         N_("<side> <stick-direction> <key>"),
         N_("Map gamepad stick direction to a key"));
 
+    cmd_gamepad_back = grub_register_command(
+        "gamepad_back",
+        grub_cmd_gamepad_options,
+        N_("<key>"),
+        N_("Map gamepad back button to a key"));
+
+    cmd_gamepad_start = grub_register_command(
+        "gamepad_start",
+        grub_cmd_gamepad_options,
+        N_("<key>"),
+        N_("Map gamepad start button to a key"));
+
     grub_usb_register_attach_hook_class(&attach_hook);
 }
 
@@ -652,6 +686,8 @@ GRUB_MOD_FINI(usb_gamepad)
     grub_unregister_command (cmd_gamepad_rt);
     grub_unregister_command (cmd_gamepad_ls);
     grub_unregister_command (cmd_gamepad_rs);
+    grub_unregister_command (cmd_gamepad_back);
+    grub_unregister_command (cmd_gamepad_start);
     grub_dprintf("usb_gamepad", "Usb_Gamepad fini-ed\n");
     // TODO(#20): usb_gamepad does not uninitialize usb stuff on FINI
 }
