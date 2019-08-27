@@ -377,15 +377,39 @@ parse_dir_by_name(const char *name,
         name);
 }
 
-// TODO(#28): key mnemonics are not sufficient
-static const char *key_names[] = {
-    "key_up",
-    "key_down"
-};
+typedef struct {
+    const char *name;
+    int keycode;
+} key_mapping_t;
 
-static int key_mapping[] = {
-    GRUB_TERM_KEY_UP,
-    GRUB_TERM_KEY_DOWN
+static key_mapping_t key_mapping[] = {
+    {"up",       GRUB_TERM_KEY_UP},
+    {"down",     GRUB_TERM_KEY_DOWN},
+    {"left",     GRUB_TERM_KEY_LEFT},
+    {"right",    GRUB_TERM_KEY_RIGHT},
+    {"home",     GRUB_TERM_KEY_HOME},
+    {"end",      GRUB_TERM_KEY_END},
+    {"dc",       GRUB_TERM_KEY_DC},
+    {"ppage",    GRUB_TERM_KEY_PPAGE},
+    {"npage",    GRUB_TERM_KEY_NPAGE},
+    {"f1",       GRUB_TERM_KEY_F1},
+    {"f2",       GRUB_TERM_KEY_F2},
+    {"f3",       GRUB_TERM_KEY_F3},
+    {"f4",       GRUB_TERM_KEY_F4},
+    {"f5",       GRUB_TERM_KEY_F5},
+    {"f6",       GRUB_TERM_KEY_F6},
+    {"f7",       GRUB_TERM_KEY_F7},
+    {"f8",       GRUB_TERM_KEY_F8},
+    {"f9",       GRUB_TERM_KEY_F9},
+    {"f10",      GRUB_TERM_KEY_F10},
+    {"f11",      GRUB_TERM_KEY_F11},
+    {"f12",      GRUB_TERM_KEY_F12},
+    {"insert",   GRUB_TERM_KEY_INSERT},
+    {"center",   GRUB_TERM_KEY_CENTER},
+    {"esc",      GRUB_TERM_ESC},
+    {"tab",      GRUB_TERM_TAB},
+    {"bspace",   GRUB_TERM_BACKSPACE},
+    {"space",    32},
 };
 
 // TODO(#33): it would be good to have some unit tests for parse_keycode_name
@@ -409,10 +433,10 @@ grub_err_t parse_keycode_name(const char *type,
 
         *keycode = input[0];
     } else if (grub_strcmp(type, "name") == 0) {
-        const int n = sizeof(key_names) / sizeof(key_names[0]);
+        const int n = sizeof(key_mapping) / sizeof(key_mapping[0]);
         for (int i = 0; i < n; ++i) {
-            if (grub_strcmp(input, key_names[i]) == 0) {
-                *keycode = key_mapping[i];
+            if (grub_strcmp(input, key_mapping[i].name) == 0) {
+                *keycode = key_mapping[i].keycode;
                 return GRUB_ERR_NONE;
             }
         }
