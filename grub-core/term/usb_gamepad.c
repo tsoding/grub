@@ -265,6 +265,37 @@ usb_gamepad_getkeystatus (struct grub_term_input *term __attribute__ ((unused)))
     return 0;
 }
 
+static void
+grub_usb_gamepad_detach (grub_usb_device_t usbdev,
+                         int config __attribute__ ((unused)),
+                         int interface __attribute__ ((unused)))
+{
+    grub_dprintf("usb_gamepad", "Detaching usb_gamepad...\n");
+
+    for (grub_size_t i = 0; i < ARRAY_SIZE(gamepads); ++i) {
+        if (!gamepads[i].data) {
+            continue;
+        }
+
+        struct grub_usb_gamepad_data *data = gamepads[i].data;
+
+        if (data->usbdev != usbdev) {
+            continue;
+        }
+
+        if (data->transfer) {
+            grub_usb_cancel_transfer(data->transfer);
+        }
+
+        grub_term_unregister_input(&gamepads[i]);
+        grub_free((char *) gamepads[i].name);
+        gamepads[i].name = NULL;
+        grub_free(gamepads[i].data);
+        gamepads[i].data = NULL;
+    }
+}
+
+
 static int
 grub_usb_gamepad_attach(grub_usb_device_t usbdev, int configno, int interfno)
 {
@@ -319,6 +350,7 @@ grub_usb_gamepad_attach(grub_usb_device_t usbdev, int configno, int interfno)
     gamepads[curnum].data = data;
     gamepads[curnum].next = 0;
 
+    usbdev->config[configno].interf[interfno].detach_hook = grub_usb_gamepad_detach;
     data->usbdev = usbdev;
     data->configno = configno;
     data->interfno = interfno;
@@ -716,19 +748,21 @@ GRUB_MOD_FINI(usb_gamepad)
     grub_unregister_command (cmd_gamepad_start);
 
     for (grub_size_t i = 0; i < ARRAY_SIZE(gamepads); ++i) {
-        if (gamepads[i].data) {
-            struct grub_usb_gamepad_data *data = gamepads[i].data;
-
-            if (data->transfer) {
-                grub_usb_cancel_transfer(data->transfer);
-            }
-
-            grub_term_unregister_input(&gamepads[i]);
-            grub_free((char *) gamepads[i].name);
-            gamepads[i].name = NULL;
-            grub_free(gamepads[i].data);
-            gamepads[i].data = NULL;
+        if (!gamepads[i].data) {
+            continue;
         }
+
+        struct grub_usb_gamepad_data *data = gamepads[i].data;
+
+        if (data->transfer) {
+            grub_usb_cancel_transfer(data->transfer);
+        }
+
+        grub_term_unregister_input(&gamepads[i]);
+        grub_free((char *) gamepads[i].name);
+        gamepads[i].name = NULL;
+        grub_free(gamepads[i].data);
+        gamepads[i].data = NULL;
     }
 
     grub_usb_unregister_attach_hook_class (&attach_hook);
