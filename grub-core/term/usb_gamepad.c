@@ -102,6 +102,9 @@ struct grub_usb_gamepad_data
     int key_queue_size;
 };
 
+#define GAMEPADS_CAPACITY 16
+static struct grub_term_input gamepads[GAMEPADS_CAPACITY];
+
 static inline
 void key_queue_push(struct grub_usb_gamepad_data *data, int key)
 {
@@ -262,28 +265,29 @@ usb_gamepad_getkeystatus (struct grub_term_input *term __attribute__ ((unused)))
     return 0;
 }
 
-static struct grub_term_input usb_gamepad_input_term =
-  {
-    .name = "usb_gamepad",
-    .getkey = usb_gamepad_getkey,
-    .getkeystatus = usb_gamepad_getkeystatus
-  };
-
 static int
 grub_usb_gamepad_attach(grub_usb_device_t usbdev, int configno, int interfno)
 {
     // TODO(#14): grub_usb_gamepad_attach leaks memory every time you connect a new USB device
-    grub_dprintf("usb_gamepad", "Usb_Gamepad configno: %d, interfno: %d\n", configno, interfno);
-    struct grub_usb_gamepad_data *data = grub_malloc(sizeof(struct grub_usb_gamepad_data));
-    struct grub_usb_desc_endp *endp = NULL;
-    if (!data) {
-        grub_print_error();
+
+    grub_dprintf("usb_gamepad", "usb_gamepad configno: %d, interfno: %d\n", configno, interfno);
+
+    unsigned curnum = 0;
+    for (curnum = 0; curnum < ARRAY_SIZE(gamepads); ++curnum)
+        if (gamepads[curnum].data == 0)
+            break;
+
+    if (curnum >= ARRAY_SIZE(gamepads)) {
+        grub_dprintf("usb_gamepad",
+                     "Reached limit of attached gamepads. The limit is %d.\n",
+                     GAMEPADS_CAPACITY);
         return 0;
     }
 
     grub_dprintf("usb_gamepad", "Endpoints: %d\n",
                  usbdev->config[configno].interf[interfno].descif->endpointcnt);
 
+    struct grub_usb_desc_endp *endp = NULL;
     int j = 0;
     for (j = 0;
          j < usbdev->config[configno].interf[interfno].descif->endpointcnt;
@@ -296,10 +300,24 @@ grub_usb_gamepad_attach(grub_usb_device_t usbdev, int configno, int interfno)
             break;
     }
 
-    if (j == usbdev->config[configno].interf[interfno].descif->endpointcnt)
+    if (j == usbdev->config[configno].interf[interfno].descif->endpointcnt) {
+        grub_dprintf("usb_gamepad", "No fitting endpoints found.\n");
         return 0;
+    }
 
-    grub_dprintf ("usb_gamepad", "HID Usb_Gamepad found! Endpoint: %d\n", j);
+    grub_dprintf ("usb_gamepad", "HID usb_gamepad found! Endpoint: %d\n", j);
+
+    struct grub_usb_gamepad_data *data = grub_malloc(sizeof(struct grub_usb_gamepad_data));
+    if (!data) {
+        grub_print_error();
+        return 0;
+    }
+
+    gamepads[curnum].name = grub_xasprintf("usb_gamepad%d", curnum);
+    gamepads[curnum].getkey = usb_gamepad_getkey;
+    gamepads[curnum].getkeystatus = usb_gamepad_getkeystatus;
+    gamepads[curnum].data = data;
+    gamepads[curnum].next = 0;
 
     data->usbdev = usbdev;
     data->configno = configno;
@@ -307,23 +325,19 @@ grub_usb_gamepad_attach(grub_usb_device_t usbdev, int configno, int interfno)
     data->endp = endp;
     data->key_queue_begin = 0;
     data->key_queue_size = 0;
-    usb_gamepad_input_term.data = data;
-
     data->prev_state = *((struct logitech_rumble_f510_state*) initial_state);
-
     data->transfer = grub_usb_bulk_read_background (
         usbdev,
         data->endp,
         sizeof (data->state),
         (char *) &data->state);
 
-    if (!data->transfer)
-    {
+    if (!data->transfer) {
         grub_print_error ();
         return 0;
     }
 
-    grub_term_register_input("usb_gamepad", &usb_gamepad_input_term);
+    grub_term_register_input_active("usb_gamepad", &gamepads[curnum]);
 
     return 0;
 }
@@ -700,6 +714,24 @@ GRUB_MOD_FINI(usb_gamepad)
     grub_unregister_command (cmd_gamepad_rs);
     grub_unregister_command (cmd_gamepad_back);
     grub_unregister_command (cmd_gamepad_start);
-    grub_dprintf("usb_gamepad", "Usb_Gamepad fini-ed\n");
-    // TODO(#20): usb_gamepad does not uninitialize usb stuff on FINI
+
+    for (grub_size_t i = 0; i < ARRAY_SIZE(gamepads); ++i) {
+        if (gamepads[i].data) {
+            struct grub_usb_gamepad_data *data = gamepads[i].data;
+
+            if (data->transfer) {
+                grub_usb_cancel_transfer(data->transfer);
+            }
+
+            grub_term_unregister_input(&gamepads[i]);
+            grub_free((char *) gamepads[i].name);
+            gamepads[i].name = NULL;
+            grub_free(gamepads[i].data);
+            gamepads[i].data = NULL;
+        }
+    }
+
+    grub_usb_unregister_attach_hook_class (&attach_hook);
+
+    grub_dprintf("usb_gamepad", "usb_gamepad fini-ed\n");
 }
