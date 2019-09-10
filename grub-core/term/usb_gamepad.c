@@ -27,7 +27,6 @@ typedef enum {
 } side_t;
 
 #define BUTTONS_COUNT 4
-#define STICKS_THRESHOLD_PCT 25
 #define STICK_X 0
 #define STICK_Y 1
 
@@ -102,12 +101,6 @@ int key_queue_pop(struct grub_usb_gamepad_data *data)
     return key;
 }
 
-static inline
-grub_int32_t abs(grub_int32_t a)
-{
-    return a < 0 ? -a : a;
-}
-
 static dir_t
 dir_by_coords(grub_uint8_t x0, grub_uint8_t y0)
 {
@@ -121,7 +114,7 @@ dir_by_coords(grub_uint8_t x0, grub_uint8_t y0)
     if (x * x + y * y > t) {
         const grub_int32_t d = 40;
 #define POS(a) ((a) > (d))
-#define ZERO(a) (abs(a) <= (d))
+#define ZERO(a) ((grub_int32_t)grub_abs(a) <= (d))
 #define NEG(a) ((a) < -(d))
         if (POS(x) && ZERO(y)) {
             return DIR_RIGHT;
