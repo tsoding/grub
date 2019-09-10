@@ -17,14 +17,14 @@ typedef enum {
     DIR_CENTERED,
 
     DIR_COUNT
-} logitech_rumble_f510_dir_t;
+} dir_t;
 
 typedef enum {
     SIDE_LEFT = 0x0,
     SIDE_RIGHT,
 
     SIDE_COUNT
-} logitech_rumble_f510_side_t;
+} side_t;
 
 #define BUTTONS_COUNT 4
 #define STICKS_THRESHOLD_PCT 25
@@ -143,7 +143,7 @@ grub_int32_t abs(grub_int32_t a)
     return a < 0 ? -a : a;
 }
 
-static logitech_rumble_f510_dir_t
+static dir_t
 dir_by_coords(grub_uint8_t x0, grub_uint8_t y0)
 {
     grub_int32_t x = x0;
@@ -207,11 +207,11 @@ static void generate_keys(struct grub_usb_gamepad_data *data)
             key_queue_push(data, trigger_mapping[side]);
         }
 
-        logitech_rumble_f510_dir_t prev_dir = dir_by_coords(
+        dir_t prev_dir = dir_by_coords(
             data->prev_state.stick_axes[side * 2 + STICK_X],
             data->prev_state.stick_axes[side * 2 + STICK_Y]);
 
-        logitech_rumble_f510_dir_t dir = dir_by_coords(
+        dir_t dir = dir_by_coords(
             data->state.stick_axes[side * 2 + STICK_X],
             data->state.stick_axes[side * 2 + STICK_Y]);
 
@@ -384,7 +384,7 @@ grub_usb_gamepad_attach(grub_usb_device_t usbdev, int configno, int interfno)
 struct dir_name_t
 {
     const char *name;
-    logitech_rumble_f510_dir_t value;
+    dir_t value;
 };
 
 static struct dir_name_t dir_names[] = {
@@ -405,7 +405,7 @@ static struct dir_name_t dir_names[] = {
 
 static grub_err_t
 parse_dir_by_name(const char *name,
-                  logitech_rumble_f510_dir_t *dir)
+                  dir_t *dir)
 {
     for (grub_size_t i = 0; i < ARRAY_SIZE(dir_names); ++i) {
         if (grub_strcmp(name, dir_names[i].name) == 0) {
@@ -545,7 +545,7 @@ grub_cmd_gamepad_dpad(grub_command_t cmd __attribute__((unused)),
 {
     ASSERT_ARGC(argc, 3);
 
-    logitech_rumble_f510_dir_t dpad_dir = 0;
+    dir_t dpad_dir = 0;
     grub_err_t err = parse_dir_by_name(args[0], &dpad_dir);
     if (err) {
         return err;
@@ -565,12 +565,12 @@ grub_cmd_gamepad_dpad(grub_command_t cmd __attribute__((unused)),
 static grub_err_t
 grub_cmd_gamepad_sided(grub_command_t cmd, int argc, char **args)
 {
-    logitech_rumble_f510_side_t side =
+    side_t side =
         cmd->name[8] == 'l'
         ? SIDE_LEFT
         : SIDE_RIGHT;
 
-    logitech_rumble_f510_dir_t dir = DIR_CENTERED;
+    dir_t dir = DIR_CENTERED;
     int keycode = 0;
     grub_err_t err = GRUB_ERR_NONE;
 
