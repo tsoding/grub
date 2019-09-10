@@ -103,12 +103,6 @@ int key_queue_pop(struct grub_usb_gamepad_data *data)
 }
 
 static inline
-int is_pressed(grub_uint8_t buttons, int i)
-{
-    return buttons & (1 << i);
-}
-
-static inline
 grub_int32_t abs(grub_int32_t a)
 {
     return a < 0 ? -a : a;
@@ -156,6 +150,7 @@ dir_by_coords(grub_uint8_t x0, grub_uint8_t y0)
 
 static void logitech_rumble_f510_generate_keys(struct grub_usb_gamepad_data *data)
 {
+#define IS_PRESSED(buttons, i) ((buttons) & (1 << (i)))
     struct logitech_rumble_f510_state *prev_state = (struct logitech_rumble_f510_state *)data->prev_state;
     struct logitech_rumble_f510_state *state = (struct logitech_rumble_f510_state *)data->state;
 
@@ -164,20 +159,20 @@ static void logitech_rumble_f510_generate_keys(struct grub_usb_gamepad_data *dat
     }
 
     for (int i = 0; i < BUTTONS_COUNT; ++i) {
-        if (!is_pressed(prev_state->buttons, i)
-            && is_pressed(state->buttons, i)) {
+        if (!IS_PRESSED(prev_state->buttons, i)
+            && IS_PRESSED(state->buttons, i)) {
             key_queue_push(data, button_mapping[i]);
         }
     }
 
     for (int side = 0; side < SIDE_COUNT; ++side) {
-        if (!is_pressed(prev_state->bumpers, side)
-            && is_pressed(state->bumpers, side)) {
+        if (!IS_PRESSED(prev_state->bumpers, side)
+            && IS_PRESSED(state->bumpers, side)) {
             key_queue_push(data, bumper_mapping[side]);
         }
 
-        if (!is_pressed(prev_state->triggers, side)
-            && is_pressed(state->triggers, side)) {
+        if (!IS_PRESSED(prev_state->triggers, side)
+            && IS_PRESSED(state->triggers, side)) {
             key_queue_push(data, trigger_mapping[side]);
         }
 
@@ -193,16 +188,17 @@ static void logitech_rumble_f510_generate_keys(struct grub_usb_gamepad_data *dat
             key_queue_push(data, stick_mapping[side][dir]);
         }
 
-        if (!is_pressed(prev_state->sticks, side)
-            && is_pressed(state->sticks, side)) {
+        if (!IS_PRESSED(prev_state->sticks, side)
+            && IS_PRESSED(state->sticks, side)) {
             key_queue_push(data, stick_press_mapping[side]);
         }
 
-        if (!is_pressed(prev_state->options, side)
-            && is_pressed(state->options, side)) {
+        if (!IS_PRESSED(prev_state->options, side)
+            && IS_PRESSED(state->options, side)) {
             key_queue_push(data, options_mapping[side]);
         }
     }
+#undef IS_PRESSED
 }
 
 static int
