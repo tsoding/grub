@@ -31,9 +31,7 @@ typedef enum {
 #define STICK_X 0
 #define STICK_Y 1
 
-// TODO(#22): dpad_mapping and button mapping should be probably part of grub_usb_gamepad_data
 static int dpad_mapping[DIR_COUNT] = { GRUB_TERM_NO_KEY };
-// TODO(#23): there is no way to configure button_mappings from the GRUB config
 static int button_mapping[BUTTONS_COUNT] = { GRUB_TERM_NO_KEY };
 static int bumper_mapping[SIDE_COUNT] = { GRUB_TERM_NO_KEY };
 static int trigger_mapping[SIDE_COUNT] = { GRUB_TERM_NO_KEY };
@@ -55,33 +53,6 @@ struct logitech_rumble_f510_state
     grub_uint8_t padding;
 };
 
-static inline
-void print_logitech_state(struct logitech_rumble_f510_state *state)
-{
-    grub_dprintf("usb_gamepad",
-        "x1: %u, "
-        "y1: %u, "
-        "x2: %u, "
-        "y2: %u, "
-        "dpad: %u, "
-        "buttons: %u, "
-        "bumpers: %u, "
-        "triggers: %u, "
-        "options: %u, "
-        "sticks: %u, "
-        "mode: %u\n",
-        state->stick_axes[0],
-        state->stick_axes[1],
-        state->stick_axes[2],
-        state->stick_axes[3],
-        state->dpad, state->buttons,
-        state->bumpers,
-        state->triggers,
-        state->options,
-        state->sticks,
-        state->mode);
-}
-
 static grub_uint8_t initial_state[8] = {
     0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x04, 0xff
 };
@@ -95,8 +66,8 @@ struct grub_usb_gamepad_data
     int interfno;
     struct grub_usb_desc_endp *endp;
     grub_usb_transfer_t transfer;
-    struct logitech_rumble_f510_state prev_state;
-    struct logitech_rumble_f510_state state;
+    grub_uint8_t prev_state[8];
+    grub_uint8_t state[8];
     int key_queue[KEY_QUEUE_CAPACITY];
     int key_queue_begin;
     int key_queue_size;
@@ -183,49 +154,52 @@ dir_by_coords(grub_uint8_t x0, grub_uint8_t y0)
     return DIR_CENTERED;
 }
 
-static void generate_keys(struct grub_usb_gamepad_data *data)
+static void logitech_rumble_f510_generate_keys(struct grub_usb_gamepad_data *data)
 {
-    if (data->prev_state.dpad != data->state.dpad) {
-        key_queue_push(data, dpad_mapping[data->state.dpad]);
+    struct logitech_rumble_f510_state *prev_state = (struct logitech_rumble_f510_state *)data->prev_state;
+    struct logitech_rumble_f510_state *state = (struct logitech_rumble_f510_state *)data->state;
+
+    if (prev_state->dpad != state->dpad) {
+        key_queue_push(data, dpad_mapping[state->dpad]);
     }
 
     for (int i = 0; i < BUTTONS_COUNT; ++i) {
-        if (!is_pressed(data->prev_state.buttons, i)
-            && is_pressed(data->state.buttons, i)) {
+        if (!is_pressed(prev_state->buttons, i)
+            && is_pressed(state->buttons, i)) {
             key_queue_push(data, button_mapping[i]);
         }
     }
 
     for (int side = 0; side < SIDE_COUNT; ++side) {
-        if (!is_pressed(data->prev_state.bumpers, side)
-            && is_pressed(data->state.bumpers, side)) {
+        if (!is_pressed(prev_state->bumpers, side)
+            && is_pressed(state->bumpers, side)) {
             key_queue_push(data, bumper_mapping[side]);
         }
 
-        if (!is_pressed(data->prev_state.triggers, side)
-            && is_pressed(data->state.triggers, side)) {
+        if (!is_pressed(prev_state->triggers, side)
+            && is_pressed(state->triggers, side)) {
             key_queue_push(data, trigger_mapping[side]);
         }
 
         dir_t prev_dir = dir_by_coords(
-            data->prev_state.stick_axes[side * 2 + STICK_X],
-            data->prev_state.stick_axes[side * 2 + STICK_Y]);
+            prev_state->stick_axes[side * 2 + STICK_X],
+            prev_state->stick_axes[side * 2 + STICK_Y]);
 
         dir_t dir = dir_by_coords(
-            data->state.stick_axes[side * 2 + STICK_X],
-            data->state.stick_axes[side * 2 + STICK_Y]);
+            state->stick_axes[side * 2 + STICK_X],
+            state->stick_axes[side * 2 + STICK_Y]);
 
         if (prev_dir != dir) {
             key_queue_push(data, stick_mapping[side][dir]);
         }
 
-        if (!is_pressed(data->prev_state.sticks, side)
-            && is_pressed(data->state.sticks, side)) {
+        if (!is_pressed(prev_state->sticks, side)
+            && is_pressed(state->sticks, side)) {
             key_queue_push(data, stick_press_mapping[side]);
         }
 
-        if (!is_pressed(data->prev_state.options, side)
-            && is_pressed(data->state.options, side)) {
+        if (!is_pressed(prev_state->options, side)
+            && is_pressed(state->options, side)) {
             key_queue_push(data, options_mapping[side]);
         }
     }
@@ -240,9 +214,8 @@ usb_gamepad_getkey (struct grub_term_input *term)
     grub_usb_err_t err = grub_usb_check_transfer (termdata->transfer, &actual);
 
     if (err != GRUB_USB_ERR_WAIT) {
-        print_logitech_state(&termdata->state);
-        generate_keys(termdata);
-        termdata->prev_state = termdata->state;
+        logitech_rumble_f510_generate_keys(termdata);
+        grub_memcpy(termdata->prev_state, termdata->state, 8);
 
         termdata->transfer = grub_usb_bulk_read_background (
             termdata->usbdev,
@@ -364,7 +337,7 @@ grub_usb_gamepad_attach(grub_usb_device_t usbdev, int configno, int interfno)
     data->endp = endp;
     data->key_queue_begin = 0;
     data->key_queue_size = 0;
-    data->prev_state = *((struct logitech_rumble_f510_state*) initial_state);
+    grub_memcpy(data->prev_state, initial_state, 8);
     data->transfer = grub_usb_bulk_read_background (
         usbdev,
         data->endp,
