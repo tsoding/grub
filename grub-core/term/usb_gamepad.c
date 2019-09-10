@@ -299,7 +299,14 @@ grub_usb_gamepad_detach (grub_usb_device_t usbdev,
 static int
 grub_usb_gamepad_attach(grub_usb_device_t usbdev, int configno, int interfno)
 {
-    // TODO(#14): grub_usb_gamepad_attach leaks memory every time you connect a new USB device
+    if ((usbdev->descdev.vendorid != 0x046d) || (usbdev->descdev.prodid != 0xc218)) {
+        grub_dprintf("usb_gamepad",
+                     "Ignoring vendor %x, product %x. "
+                     "Only vendor 0x046d and product 0xc218 are supported\n",
+                     usbdev->descdev.vendorid,
+                     usbdev->descdev.prodid);
+        return 0;
+    }
 
     grub_dprintf("usb_gamepad", "usb_gamepad configno: %d, interfno: %d\n", configno, interfno);
 
