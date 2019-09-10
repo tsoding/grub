@@ -649,103 +649,54 @@ grub_cmd_gamepad_options(grub_command_t cmd, int argc, char **args)
     return GRUB_ERR_NONE;
 }
 
-// TODO(#31): grub command handlers should be just an array
-static grub_command_t cmd_gamepad_dpad,
-    cmd_gamepad_btn,
-    cmd_gamepad_lb,
-    cmd_gamepad_rb,
-    cmd_gamepad_lt,
-    cmd_gamepad_rt,
-    cmd_gamepad_ls,
-    cmd_gamepad_rs,
-    cmd_gamepad_back,
-    cmd_gamepad_start;
-
 static struct grub_usb_attach_desc attach_hook =
 {
     .class = GRUB_USB_CLASS_HID,
     .hook = grub_usb_gamepad_attach
 };
 
+struct command_proto {
+    const char *name;
+    grub_command_func_t func;
+    const char *summary;
+    const char *description;
+};
+
+static struct command_proto cmds_proto[] = {
+    {"gamepad_dpad",grub_cmd_gamepad_dpad,N_("<dpad-direction> <key>"),N_("Map gamepad dpad direction to a key")},
+    {"gamepad_btn",grub_cmd_gamepad_btn,N_("<button-number> <key>"),N_("Map gamepad button to a key")},
+    {"gamepad_lb",grub_cmd_gamepad_sided,N_("<key>"),N_("Map gamepad Left Bumper to a key")},
+    {"gamepad_rb",grub_cmd_gamepad_sided,N_("<key>"),N_("Map gamepad Right Bumper to a key")},
+    {"gamepad_lt",grub_cmd_gamepad_sided,N_("<key>"),N_("Map gamepad Left Trigger to a key")},
+    {"gamepad_rt",grub_cmd_gamepad_sided,N_("<key>"),N_("Map gamepad Right Trigger to a key")},
+    {"gamepad_ls",grub_cmd_gamepad_sided,N_("<direction|P> <key>"),N_("Map gamepad Left Stick Action to a key")},
+    {"gamepad_rs",grub_cmd_gamepad_sided,N_("<direction|P> <key>"),N_("Map gamepad Right Stick Action to a key")},
+    {"gamepad_back",grub_cmd_gamepad_options,N_("<key>"),N_("Map gamepad Back button to a key")},
+    {"gamepad_start",grub_cmd_gamepad_options,N_("<key>"),N_("Map gamepad Start button to a key")}
+};
+
+static grub_command_t cmds[ARRAY_SIZE(cmds_proto)];
+
 GRUB_MOD_INIT(usb_gamepad)
 {
     grub_dprintf("usb_gamepad", "Usb_Gamepad module loaded\n");
 
-    cmd_gamepad_dpad = grub_register_command(
-        "gamepad_dpad",
-        grub_cmd_gamepad_dpad,
-        N_("<dpad-direction> <key>"),
-        N_("Map gamepad dpad direction to a key"));
-
-    cmd_gamepad_btn = grub_register_command(
-        "gamepad_btn",
-        grub_cmd_gamepad_btn,
-        N_("<button-number> <key>"),
-        N_("Map gamepad button to a key"));
-
-    cmd_gamepad_lb = grub_register_command(
-        "gamepad_lb",
-        grub_cmd_gamepad_sided,
-        N_("<key>"),
-        N_("Map gamepad Left Bumper to a key"));
-
-    cmd_gamepad_rb = grub_register_command(
-        "gamepad_rb",
-        grub_cmd_gamepad_sided,
-        N_("<key>"),
-        N_("Map gamepad Right Bumper to a key"));
-
-    cmd_gamepad_lt = grub_register_command(
-        "gamepad_lt",
-        grub_cmd_gamepad_sided,
-        N_("<key>"),
-        N_("Map gamepad Left Trigger to a key"));
-
-    cmd_gamepad_rt = grub_register_command(
-        "gamepad_rt",
-        grub_cmd_gamepad_sided,
-        N_("<key>"),
-        N_("Map gamepad Right Trigger to a key"));
-
-    cmd_gamepad_ls = grub_register_command(
-        "gamepad_ls",
-        grub_cmd_gamepad_sided,
-        N_("<direction|P> <key>"),
-        N_("Map gamepad Left Stick Action to a key"));
-
-    cmd_gamepad_rs = grub_register_command(
-        "gamepad_rs",
-        grub_cmd_gamepad_sided,
-        N_("<direction|P> <key>"),
-        N_("Map gamepad Right Stick Action to a key"));
-
-    cmd_gamepad_back = grub_register_command(
-        "gamepad_back",
-        grub_cmd_gamepad_options,
-        N_("<key>"),
-        N_("Map gamepad Back button to a key"));
-
-    cmd_gamepad_start = grub_register_command(
-        "gamepad_start",
-        grub_cmd_gamepad_options,
-        N_("<key>"),
-        N_("Map gamepad Start button to a key"));
+    for (grub_size_t i = 0; i < ARRAY_SIZE(cmds); ++i) {
+        cmds[i] = grub_register_command(
+            cmds_proto[i].name,
+            cmds_proto[i].func,
+            cmds_proto[i].summary,
+            cmds_proto[i].description);
+    }
 
     grub_usb_register_attach_hook_class(&attach_hook);
 }
 
 GRUB_MOD_FINI(usb_gamepad)
 {
-    grub_unregister_command (cmd_gamepad_dpad);
-    grub_unregister_command (cmd_gamepad_btn);
-    grub_unregister_command (cmd_gamepad_lb);
-    grub_unregister_command (cmd_gamepad_rb);
-    grub_unregister_command (cmd_gamepad_lt);
-    grub_unregister_command (cmd_gamepad_rt);
-    grub_unregister_command (cmd_gamepad_ls);
-    grub_unregister_command (cmd_gamepad_rs);
-    grub_unregister_command (cmd_gamepad_back);
-    grub_unregister_command (cmd_gamepad_start);
+    for (grub_size_t i = 0; i < ARRAY_SIZE(cmds); ++i) {
+        grub_unregister_command(cmds[i]);
+    }
 
     for (grub_size_t i = 0; i < ARRAY_SIZE(gamepads); ++i) {
         if (!gamepads[i].data) {
