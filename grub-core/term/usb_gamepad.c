@@ -27,8 +27,8 @@ typedef enum {
 } side_t;
 
 #define BUTTONS_COUNT 4
-#define STICK_X 0
-#define STICK_Y 1
+#define GAMEPADS_CAPACITY 16
+#define KEY_QUEUE_CAPACITY 32
 
 static int dpad_mapping[DIR_COUNT] = { GRUB_TERM_NO_KEY };
 static int button_mapping[BUTTONS_COUNT] = { GRUB_TERM_NO_KEY };
@@ -56,8 +56,6 @@ static grub_uint8_t initial_state[8] = {
     0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x04, 0xff
 };
 
-#define KEY_QUEUE_CAPACITY 32
-
 struct grub_usb_gamepad_data
 {
     grub_usb_device_t usbdev;
@@ -72,7 +70,6 @@ struct grub_usb_gamepad_data
     int key_queue_size;
 };
 
-#define GAMEPADS_CAPACITY 16
 static struct grub_term_input gamepads[GAMEPADS_CAPACITY];
 
 static inline
@@ -170,12 +167,12 @@ static void logitech_rumble_f510_generate_keys(struct grub_usb_gamepad_data *dat
         }
 
         dir_t prev_dir = dir_by_coords(
-            prev_state->stick_axes[side * 2 + STICK_X],
-            prev_state->stick_axes[side * 2 + STICK_Y]);
+            prev_state->stick_axes[side * 2],
+            prev_state->stick_axes[side * 2 + 1]);
 
         dir_t dir = dir_by_coords(
-            state->stick_axes[side * 2 + STICK_X],
-            state->stick_axes[side * 2 + STICK_Y]);
+            state->stick_axes[side * 2],
+            state->stick_axes[side * 2 + 1]);
 
         if (prev_dir != dir) {
             key_queue_push(data, stick_mapping[side][dir]);
