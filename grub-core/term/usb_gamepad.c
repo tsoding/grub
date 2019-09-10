@@ -52,7 +52,7 @@ struct logitech_rumble_f510_state
     grub_uint8_t padding;
 };
 
-static grub_uint8_t initial_state[8] = {
+static grub_uint8_t initial_logitech_rumble_f510_state[8] = {
     0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x04, 0xff
 };
 
@@ -323,7 +323,7 @@ grub_usb_gamepad_attach(grub_usb_device_t usbdev, int configno, int interfno)
     data->endp = endp;
     data->key_queue_begin = 0;
     data->key_queue_size = 0;
-    grub_memcpy(data->prev_state, initial_state, 8);
+    grub_memcpy(data->prev_state, initial_logitech_rumble_f510_state, 8);
     data->transfer = grub_usb_bulk_read_background (
         usbdev,
         data->endp,
