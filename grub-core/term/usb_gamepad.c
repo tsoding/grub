@@ -51,9 +51,7 @@ struct logitech_rumble_f510_state
     grub_uint8_t padding;
 };
 
-static grub_uint8_t initial_logitech_rumble_f510_state[8] = {
-    0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x04, 0xff
-};
+#define REPORT_SIZE 8
 
 struct grub_usb_gamepad_data
 {
@@ -62,11 +60,15 @@ struct grub_usb_gamepad_data
     int interfno;
     struct grub_usb_desc_endp *endp;
     grub_usb_transfer_t transfer;
-    grub_uint8_t prev_state[8];
-    grub_uint8_t state[8];
+    grub_uint8_t prev_state[REPORT_SIZE];
+    grub_uint8_t state[REPORT_SIZE];
     int key_queue[KEY_QUEUE_CAPACITY];
     int key_queue_begin;
     int key_queue_size;
+};
+
+static grub_uint8_t initial_logitech_rumble_f510_state[REPORT_SIZE] = {
+    0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x04, 0xff
 };
 
 static struct grub_term_input gamepads[GAMEPADS_CAPACITY];
@@ -200,7 +202,7 @@ usb_gamepad_getkey (struct grub_term_input *term)
 
     if (err != GRUB_USB_ERR_WAIT) {
         logitech_rumble_f510_generate_keys(termdata);
-        grub_memcpy(termdata->prev_state, termdata->state, 8);
+        grub_memcpy(termdata->prev_state, termdata->state, REPORT_SIZE);
 
         termdata->transfer = grub_usb_bulk_read_background (
             termdata->usbdev,
@@ -322,7 +324,7 @@ grub_usb_gamepad_attach(grub_usb_device_t usbdev, int configno, int interfno)
     data->endp = endp;
     data->key_queue_begin = 0;
     data->key_queue_size = 0;
-    grub_memcpy(data->prev_state, initial_logitech_rumble_f510_state, 8);
+    grub_memcpy(data->prev_state, initial_logitech_rumble_f510_state, REPORT_SIZE);
     data->transfer = grub_usb_bulk_read_background (
         usbdev,
         data->endp,
