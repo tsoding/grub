@@ -413,7 +413,6 @@ static key_mapping_t key_mapping[] = {
     {"space",    32},
 };
 
-// TODO(#33): it would be good to have some unit tests for parse_keycode_name
 static
 grub_err_t parse_keycode_name(const char *type,
                               const char *input,
