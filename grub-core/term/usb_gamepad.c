@@ -30,6 +30,9 @@ typedef enum {
 #define GAMEPADS_CAPACITY 16
 #define KEY_QUEUE_CAPACITY 32
 
+#define LOGITECH_VENDORID 0x046d
+#define RUMBLEPAD_PRODUCTID 0xc218
+
 static int dpad_mapping[DIR_COUNT] = { GRUB_TERM_NO_KEY };
 static int button_mapping[BUTTONS_COUNT] = { GRUB_TERM_NO_KEY };
 static int bumper_mapping[SIDE_COUNT] = { GRUB_TERM_NO_KEY };
@@ -259,12 +262,15 @@ grub_usb_gamepad_detach (grub_usb_device_t usbdev,
 static int
 grub_usb_gamepad_attach(grub_usb_device_t usbdev, int configno, int interfno)
 {
-    if ((usbdev->descdev.vendorid != 0x046d) || (usbdev->descdev.prodid != 0xc218)) {
+    if ((usbdev->descdev.vendorid != LOGITECH_VENDORID)
+        || (usbdev->descdev.prodid != RUMBLEPAD_PRODUCTID)) {
         grub_dprintf("usb_gamepad",
                      "Ignoring vendor %x, product %x. "
-                     "Only vendor 0x046d and product 0xc218 are supported\n",
+                     "Only vendor %x and product %x are supported\n",
                      usbdev->descdev.vendorid,
-                     usbdev->descdev.prodid);
+                     usbdev->descdev.prodid,
+                     LOGITECH_VENDORID,
+                     RUMBLEPAD_PRODUCTID);
         return 0;
     }
 
