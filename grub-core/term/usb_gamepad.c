@@ -38,7 +38,6 @@ static int stick_mapping[SIDE_COUNT][DIR_COUNT] = { GRUB_TERM_NO_KEY };
 static int stick_press_mapping[SIDE_COUNT] = { GRUB_TERM_NO_KEY };
 static int options_mapping[SIDE_COUNT] = { GRUB_TERM_NO_KEY };
 
-// TODO(#18): usb_gamepad has no respect to endianness
 struct logitech_rumble_f510_state
 {
     grub_uint8_t stick_axes[SIDE_COUNT * 2];
